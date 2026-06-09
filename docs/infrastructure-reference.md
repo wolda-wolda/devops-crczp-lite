@@ -26,11 +26,16 @@
 | Resource | Recommended | Minimum |
 |---|---|---|
 | vCPU | 8 | 4 |
-| RAM | 48 GB (45 056 MB Vagrant default) | 48 GB |
+| RAM | 48 GB | 48 GB |
 | HDD | 250 GB | 250 GB |
 
-The Vagrant defaults are set in `Vagrantfile` and can be overridden with environment variables
-before `vagrant up`:
+By default, the `Vagrantfile` automatically and dynamically detects the host's hardware capacity:
+- **vCPU**: Allocates `host_cpus - 4` (minimum 4, or `host_cpus - 2` if total is <= 8) to leave headroom for host processes.
+- **RAM**: Allocates `host_ram_mb - 8192` (minimum 8192 MB, or `host_ram_mb - 4096` if total is <= 16 GB) to leave headroom for host OS overhead.
+
+For example, on a 32-core, 64 GB RAM server, Vagrant automatically provisions **28 vCPUs** and **~52.7 GB (52722 MB) RAM** to the VM.
+
+You can still manually override these dynamic defaults using environment variables:
 
 ```bash
 CPU=8 RAM=45056 vagrant up
