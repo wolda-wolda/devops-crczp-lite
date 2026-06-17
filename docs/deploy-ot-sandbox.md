@@ -100,7 +100,16 @@ router_mappings:
   - router: ot-router
     network: ot-net
     ip: 192.168.99.1
+
+groups:
+  - name: ot-group
+    nodes:
+      - attacker-host
+      - scada-hmi
+      - openplc-node
+      - ot-router
 ```
+
 
 ---
 

@@ -94,6 +94,7 @@ Run these helper commands **from the host** to fetch active credentials:
 ## 6. Topology Definition (`topology.yml`) Schema Reference
 To avoid parser validation errors (e.g., `Error parsing <class 'crczp.topology_definition.models.TopologyDefinition'>`), you **must** adhere to the following schema constraints:
 * **Flat Root Structure:** Do NOT wrap the configuration in a `kypo_topology:` key. Root keys (`name`, `hosts`, `routers`, `networks`, `net_mappings`, `router_mappings`, `groups`) must be defined directly at the root level of the YAML file.
+* **Mandatory Groups Attribute:** The `groups` attribute is required and has no default value. You must define at least one group listing the relevant hosts/routers (e.g., `nodes: [attacker-host, scada-hmi, ...]`).
 * **Sibling Flavor Nesting:** `flavor` is a direct sibling of `base_box` (under `hosts` and `routers`), NOT nested inside the `base_box` block.
 * **Base Box Image Attribute:** Always define the box image as `image: <image-name>` inside the `base_box` mapping (e.g., `image: debian-12-x86_64`), not as dynamic keys or versions.
 * **Explicit Mappings:** Connect hosts via the `net_mappings` list (keys: `host`, `network`, `ip`) and routers via the `router_mappings` list (keys: `router`, `network`, `ip`). The old `mappings` key is not valid.
