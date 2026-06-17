@@ -7,7 +7,7 @@ require 'etc'
 def detect_default_cpu
   host_cpus = Etc.nprocessors rescue 8
   if host_cpus > 8
-    host_cpus - 4
+    host_cpus - 4  # Leave 4 cores for host overhead
   elsif host_cpus > 4
     host_cpus - 2
   else
@@ -20,7 +20,7 @@ def detect_default_ram
     mem_total_kb = File.read("/proc/meminfo")[/MemTotal:\s+(\d+)\s+kB/, 1]
     if mem_total_kb
       host_ram_mb = mem_total_kb.to_i / 1024
-      # Leave 8GB for host if we have more than 16GB, else leave 4GB, minimum 8GB
+      # Leave 8GB for host if we have more than 16GB to prevent swapping, else leave 4GB
       if host_ram_mb > 16384
         return host_ram_mb - 8192
       elsif host_ram_mb > 8192
@@ -55,6 +55,8 @@ Vagrant.configure(2) do |config|
     libvirt.cpus = cpu
     libvirt.memory = ram
     libvirt.nested = true
+    libvirt.cpu_mode = 'host-passthrough'
+    libvirt.disk_driver :cache => 'unsafe'
     libvirt.machine_virtual_size = 250
   end
 

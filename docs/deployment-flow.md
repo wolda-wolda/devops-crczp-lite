@@ -201,6 +201,95 @@ sshuttle -r root@<host> 10.1.2.0/24
 
 ---
 
+## Graceful Shutdown & Startup Procedures
+
+Because the cyberrange runs virtual machines nested inside OpenStack, and runs multiple database services (PostgreSQL for Keycloak/Guacamole, MariaDB for OpenStack, etc.) inside Docker and Kubernetes, **improper shutdowns can lead to database corruption or broken VM disk states.**
+
+Follow these steps to shut down and boot up the platform cleanly:
+
+### 1. Graceful Shutdown Procedure
+
+#### Step A: Stop Nested OpenStack Sandbox Instances
+Before shutting down the parent Vagrant VM, you must gracefully power off all active training sandbox VMs running inside OpenStack.
+1. SSH into the Vagrant VM:
+   ```bash
+   vagrant ssh
+   ```
+2. Elevate to root and source your OpenStack credentials:
+   ```bash
+   sudo -i
+   source /etc/kolla/admin-openrc.sh
+   ```
+3. Stop all running instances using the absolute path to the OpenStack client:
+   ```bash
+   for server in $(/root/kolla-ansible-venv/bin/openstack server list -f value -c ID); do
+     /root/kolla-ansible-venv/bin/openstack server stop $server
+   done
+   ```
+4. Exit back to your host machine:
+   ```bash
+   exit
+   exit
+   ```
+
+#### Step B: Stop the Vagrant VM (from the Host)
+Once the nested guest VMs have stopped, trigger an ACPI graceful shutdown on the parent Vagrant VM from your host:
+```bash
+vagrant halt
+```
+* **Why this is safe:** Vagrant will send an ACPI shutdown signal to the Ubuntu guest. The guest OS will trigger systemd to cleanly stop `k3s.service` and `docker.service`. These services send SIGTERM to all database and control plane containers (MariaDB, PostgreSQL, RabbitMQ), giving them a grace period to flush memory transactions to disk before closing.
+
+---
+
+### 2. Graceful Startup Procedure
+
+#### Step A: Boot the Vagrant VM
+From the host repository directory, spin up the VM:
+```bash
+vagrant up
+```
+* **What happens:** The VM boots. Docker and k3s services are set to start automatically.
+* Since the OpenStack containers are configured with a restart policy (`restart: unless-stopped` or `always`), Docker will automatically restart all OpenStack services.
+
+#### Step B: Verify Service Readiness
+Wait a few minutes for all API endpoints to initialize. You can check the service statuses inside the VM:
+1. Log in:
+   ```bash
+   vagrant ssh
+   ```
+2. Check that the containers are running and healthy:
+   ```bash
+   sudo docker ps
+   ```
+3. Verify Kubernetes node status:
+   ```bash
+   kubectl get nodes
+   ```
+
+#### Step C: Start Nested OpenStack Sandbox Instances
+If you gracefully stopped the sandbox instances during shutdown, you need to turn them back on:
+1. Elevate to root and source credentials:
+   ```bash
+   sudo -i
+   source /etc/kolla/admin-openrc.sh
+   ```
+2. Start all stopped instances using the absolute path to the OpenStack client:
+   ```bash
+   for server in $(/root/kolla-ansible-venv/bin/openstack server list -f value -c ID); do
+     /root/kolla-ansible-venv/bin/openstack server start $server
+   done
+   ```
+3. Exit back to your host machine:
+   ```bash
+   exit
+   exit
+   ```
+
+---
+
 ## Related Documentation
 
 - [Infrastructure Reference](./infrastructure-reference.md) — VM versions, OS images, tool versions, credentials
+- [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
+- [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
+- [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance

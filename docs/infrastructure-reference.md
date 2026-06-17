@@ -30,16 +30,33 @@
 | HDD | 250 GB | 250 GB |
 
 By default, the `Vagrantfile` automatically and dynamically detects the host's hardware capacity:
-- **vCPU**: Allocates `host_cpus - 4` (minimum 4, or `host_cpus - 2` if total is <= 8) to leave headroom for host processes.
-- **RAM**: Allocates `host_ram_mb - 8192` (minimum 8192 MB, or `host_ram_mb - 4096` if total is <= 16 GB) to leave headroom for host OS overhead.
+- **vCPU**: 
+  - If `host_cpus > 8`: Allocates `host_cpus - 4` (leaving 4 cores headroom).
+  - If `host_cpus > 4`: Allocates `host_cpus - 2`.
+  - Else: Allocates all `host_cpus`.
+- **RAM**: 
+  - If `host_ram_mb > 16384`: Allocates `host_ram_mb - 8192` (leaving 8 GB headroom to prevent host swapping).
+  - If `host_ram_mb > 8192`: Allocates `host_ram_mb - 4096` (leaving 4 GB headroom).
+  - Else: Allocates all `host_ram_mb`.
 
-For example, on a 32-core, 64 GB RAM server, Vagrant automatically provisions **28 vCPUs** and **~52.7 GB (52722 MB) RAM** to the VM.
+For example, on a 32-core, 64 GB RAM server, Vagrant automatically provisions **28 vCPUs** and **~52 GB (52,248 MB) RAM** to the VM.
 
 You can still manually override these dynamic defaults using environment variables:
 
 ```bash
 CPU=8 RAM=45056 vagrant up
 ```
+
+### 2.1 Performance Tuning and Hypervisor Settings
+
+To speed up deployment time, several hypervisor-level performance options are enabled by default in the `Vagrantfile`'s Libvirt block:
+
+| Setting | Value | Rationale / Performance Gain | Upsides | Downsides / Risks |
+|---|---|---|---|---|
+| **vCPU Allocation** | `28` (on 32-core host) | Higher parallelism during Ansible tasks, container image building, and multi-threaded script execution. | Maximize host CPU utilization, decreasing compute-bound phases by 10-15%. | Leaves 4 host cores for host tasks (SSH, basic monitoring, hypervisor overhead). |
+| **RAM Allocation** | `~49.5 GB` (on 64 GB host) | Large buffer for OpenStack components, MariaDB cache, RabbitMQ queues, and nested k3s VMs, preventing disk swap. | Minimizes VM out-of-memory errors and disk paging. | Leaves 10 GB RAM for the host OS to prevent OOM/swapping on host hypervisor. |
+| **`cpu_mode`** | `'host-passthrough'` | Direct exposure of the host's CPU instruction set (AES-NI, AVX, etc.). Crucial for nested VMs. | **Near bare-metal speed** for nested virtualization (k3s VMs inside OpenStack) and cryptographic handshake performance. | Limits VM live migration capability to hosts with different CPU models (rarely needed for local test setups). |
+| **`volume_cache`** | `'unsafe'` | Asynchronous host-backed cache ignoring sync/fsync operations. | **Huge write performance boost (2x–5x)** during disk-intensive phases (package installations, container downloads, database writes). | Data loss in case of physical host power failure (not an issue for short-lived, redeployable test-environments). |
 
 ---
 
@@ -142,13 +159,42 @@ Network interfaces inside the VM:
 | **Constraints file** | `https://releases.openstack.org/constraints/upper/2025.1` |
 | **Credentials file** | `/etc/kolla/admin-openrc.sh` (auto-sourced in root's `.bashrc`) |
 
-### 6.4 Access Points
+### 6.4 Central Access Points and Endpoints
 
-| Service | URL / Address |
-|---|---|
-| Horizon Dashboard | `http://10.1.2.9` |
-| OpenStack API | `http://10.1.2.9` |
-| Admin password lookup | `grep "OS_PASSWORD" /etc/kolla/admin-openrc.sh` |
+All services deployed in the cyberrange (both the OpenStack infrastructure layer and the Kubernetes/k3s application layer) are exposed via specific IP addresses, ports, and paths.
+
+#### 1. OpenStack Infrastructure Services (HTTP - Port 80)
+These are hosted on the OpenStack Virtual IP (`10.1.2.9`):
+
+| Service / Interface | URL | Port | Access Details / Credentials |
+|---|---|---|---|
+| **Horizon Dashboard** | `http://10.1.2.9` | 80 | OpenStack web administrative panel. Username: `admin` |
+| **Keystone API** | `http://10.1.2.9:5000` | 5000 | OpenStack identity service API endpoint. |
+| **Glance API** | `http://10.1.2.9:9292` | 9292 | OpenStack image service API endpoint. |
+| **Nova API** | `http://10.1.2.9:8774` | 8774 | OpenStack compute service API endpoint. |
+
+> [!TIP]
+> To retrieve the OpenStack `admin` password from your host, run:
+> ```bash
+> vagrant ssh -c "sudo grep OS_PASSWORD /etc/kolla/admin-openrc.sh"
+> ```
+
+#### 2. CyberRange Portal & Application Services (HTTPS - Port 443)
+These are hosted on the Kubernetes cluster master IP (`<cluster_ip>`) and routed via the Traefik ingress controller:
+
+| Service / Interface | URL Path | Port | Username / Password Retrieval |
+|---|---|---|---|
+| **CyberRange Portal (Web UI)** | `https://<cluster_ip>/` | 443 | `crczp-admin` / `password` |
+| **Keycloak Auth Server** | `https://<cluster_ip>/keycloak/` | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw keycloak_password"` |
+| **Grafana Dashboard** | `https://<cluster_ip>/grafana` | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw monitoring_admin_password"` |
+| **Prometheus API** | `https://<cluster_ip>/prometheus/` | 443 | Requires basic authentication using `admin` credentials (same password as Grafana). |
+| **Alertmanager** | `https://<cluster_ip>/alerts/` | 443 | Requires basic authentication using `admin` credentials. |
+
+> [!NOTE]
+> The `<cluster_ip>` is the internal floating IP of the Kubernetes management node in your OpenStack deployment. You can output this IP from your host using:
+> ```bash
+> vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-openstack-base output -raw cluster_ip"
+> ```
 
 ---
 
@@ -281,10 +327,32 @@ sshuttle -r root@<host> 10.1.2.0/24
 
 ## 13. Default Credentials
 
-| Service | Username | Password |
+| Service | Username | Password / Retrieval Command (Run from Host) |
 |---|---|---|
 | CyberRangeCZ Portal | `crczp-admin` | `password` |
-| OpenStack Horizon | `admin` | `grep OS_PASSWORD /etc/kolla/admin-openrc.sh` |
-| Grafana monitoring | `admin` | `tofu output monitoring_admin_password` |
-| Keycloak admin | `admin` | `tofu output keycloak_password` |
+| OpenStack Horizon | `admin` | `vagrant ssh -c "sudo grep OS_PASSWORD /etc/kolla/admin-openrc.sh"` |
+| Grafana monitoring | `admin` | `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw monitoring_admin_password"` |
+| Keycloak admin | `admin` | `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw keycloak_password"` |
 | OpenStack app credential | `demo` | `password` |
+
+> [!NOTE]
+> If you are running Vagrant inside the Docker wrapper, run the commands using the docker container:
+> ```bash
+> # Example to retrieve the OpenStack Horizon admin password:
+> docker run -it --rm \
+>   -v /var/run/libvirt/:/var/run/libvirt/ \
+>   -v ~/.vagrant.d:/.vagrant.d \
+>   -v $(realpath "${PWD}"):${PWD} \
+>   -w "${PWD}" \
+>   --network host \
+>   vagrantlibvirt/vagrant-libvirt:latest \
+>   vagrant ssh -c "sudo grep OS_PASSWORD /etc/kolla/admin-openrc.sh"
+> ```
+
+---
+
+## 14. Related Documentation
+
+- [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
+- [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
+- [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance
