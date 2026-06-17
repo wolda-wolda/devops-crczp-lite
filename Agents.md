@@ -100,3 +100,11 @@ To avoid parser validation errors (e.g., `Error parsing <class 'crczp.topology_d
 * **Explicit Mappings:** Connect hosts via the `net_mappings` list (keys: `host`, `network`, `ip`) and routers via the `router_mappings` list (keys: `router`, `network`, `ip`). The old `mappings` key is not valid.
 * **No Router CIDRs:** Routers do not accept a CIDR configuration directly. Define their IPs on each network using the `router_mappings` section.
 
+---
+
+## 7. OpenStack Console Type Configuration
+* **Console Type:** The remote console type for VM access must be configured as **`novnc`** (VNC).
+* **Location:** This is defined in `/root/devops-tf-deployment/tf-head-services/values.yaml` under `sandbox.osConsoleType`.
+* **Why it matters:** The underlying OpenStack deployment has VNC enabled, but does not support `spice-html5` remote consoles. Leaving this set to `spice-html5` will cause the CyberRange portal's "Open Console" page to hang/load indefinitely with a `400 BadRequest: Unavailable console type` error from Nova.
+
+
