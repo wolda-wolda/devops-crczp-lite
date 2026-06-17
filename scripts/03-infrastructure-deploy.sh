@@ -281,9 +281,17 @@ deploy_head_services() {
         else
             log "DNS settings already configured in values.yaml"
         fi
+
+        # Update OpenStack console type to novnc
+        if grep -q "osConsoleType: spice-html5" values.yaml; then
+            log "Updating OpenStack console type to novnc in values.yaml..."
+            sed -i 's/osConsoleType: spice-html5/osConsoleType: novnc/g' values.yaml
+            log "Updated console type settings in values.yaml"
+        fi
     else
         log_warning "values.yaml not found, continuing without DNS updates"
     fi
+
 
     # Check if Terraform is already initialized
     if [ ! -d ".terraform" ]; then
