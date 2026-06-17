@@ -44,9 +44,9 @@ hosts:
   # 1. Attacker workstation (Level 3)
   - name: attacker-host
     base_box:
-      image: debian-12-x86_64
+      image: kali
       mgmt_user: debian
-    flavor: standard.small
+    flavor: standard.large
 
   # 2. SCADA/HMI server (Level 2)
   - name: scada-hmi
