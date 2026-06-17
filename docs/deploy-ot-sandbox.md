@@ -38,56 +38,68 @@ Create `topology.yml` to set up the networking and virtual instances. We will cr
 * `ot-net`: Connects the SCADA HMI to the PLC (isolated from the attacker).
 
 ```yaml
-kypo_topology:
-  # Define the virtual networks
-  networks:
-    - name: mgmt-net
-      cidr: 10.10.10.0/24
-    - name: ot-net
-      cidr: 192.168.99.0/24
+name: ot-sandbox-definition
 
-  # Define the router connecting the networks (if routing is desired)
-  routers:
-    - name: ot-router
-      cidr: 10.10.20.0/24
+hosts:
+  # 1. Attacker workstation (Level 3)
+  - name: attacker-host
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: standard.small
 
-  # Define the virtual machines (hosts)
-  hosts:
-    # 1. Attacker workstation (Level 3)
-    - name: attacker-host
-      base_box:
-        debian-11-x86_64: "latest"
-      flavor: standard.small
+  # 2. SCADA/HMI server (Level 2)
+  - name: scada-hmi
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+    flavor: standard.medium
 
-    # 2. SCADA/HMI server (Level 2)
-    - name: scada-hmi
-      base_box:
-        ubuntu-2204-x86_64: "latest"
-      flavor: standard.medium
+  # 3. Software PLC (Level 1)
+  - name: openplc-node
+    base_box:
+      image: ubuntu-noble-x86_64
+      mgmt_user: ubuntu
+    flavor: standard.small
 
-    # 3. Software PLC (Level 1)
-    - name: openplc-node
-      base_box:
-        ubuntu-2204-x86_64: "latest"
-      flavor: standard.small
+routers:
+  - name: ot-router
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: standard.small
 
-  # Connect hosts to networks
-  mappings:
-    - host: attacker-host
-      network: mgmt-net
-      ip: 10.10.10.50
+networks:
+  - name: mgmt-net
+    cidr: 10.10.10.0/24
+  - name: ot-net
+    cidr: 192.168.99.0/24
 
-    - host: scada-hmi
-      network: mgmt-net
-      ip: 10.10.10.10
+net_mappings:
+  - host: attacker-host
+    network: mgmt-net
+    ip: 10.10.10.50
 
-    - host: scada-hmi
-      network: ot-net
-      ip: 192.168.99.5
+  - host: scada-hmi
+    network: mgmt-net
+    ip: 10.10.10.10
 
-    - host: openplc-node
-      network: ot-net
-      ip: 192.168.99.10
+  - host: scada-hmi
+    network: ot-net
+    ip: 192.168.99.5
+
+  - host: openplc-node
+    network: ot-net
+    ip: 192.168.99.10
+
+router_mappings:
+  - router: ot-router
+    network: mgmt-net
+    ip: 10.10.10.1
+
+  - router: ot-router
+    network: ot-net
+    ip: 192.168.99.1
 ```
 
 ---

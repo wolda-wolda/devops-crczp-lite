@@ -88,3 +88,14 @@ Run these helper commands **from the host** to fetch active credentials:
 * [docs/deploy-ot-scenario-portal.md](file:///opt/cyber-range/devops-crczp-lite/docs/deploy-ot-scenario-portal.md): A step-by-step portal GUI guide to import, allocate, and delete sandbox pools.
 * [docs/deployment-flow.md](file:///opt/cyber-range/devops-crczp-lite/docs/deployment-flow.md): High-level flow description of Phase 1 to Phase 4 script provisioning.
 * [docs/infrastructure-reference.md](file:///opt/cyber-range/devops-crczp-lite/docs/infrastructure-reference.md): Lists software packages, snap tools, KVM specs, and access networks.
+
+---
+
+## 6. Topology Definition (`topology.yml`) Schema Reference
+To avoid parser validation errors (e.g., `Error parsing <class 'crczp.topology_definition.models.TopologyDefinition'>`), you **must** adhere to the following schema constraints:
+* **Flat Root Structure:** Do NOT wrap the configuration in a `kypo_topology:` key. Root keys (`name`, `hosts`, `routers`, `networks`, `net_mappings`, `router_mappings`, `groups`) must be defined directly at the root level of the YAML file.
+* **Sibling Flavor Nesting:** `flavor` is a direct sibling of `base_box` (under `hosts` and `routers`), NOT nested inside the `base_box` block.
+* **Base Box Image Attribute:** Always define the box image as `image: <image-name>` inside the `base_box` mapping (e.g., `image: debian-12-x86_64`), not as dynamic keys or versions.
+* **Explicit Mappings:** Connect hosts via the `net_mappings` list (keys: `host`, `network`, `ip`) and routers via the `router_mappings` list (keys: `router`, `network`, `ip`). The old `mappings` key is not valid.
+* **No Router CIDRs:** Routers do not accept a CIDR configuration directly. Define their IPs on each network using the `router_mappings` section.
+
