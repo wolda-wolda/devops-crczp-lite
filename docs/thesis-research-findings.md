@@ -21,7 +21,7 @@ This document summarizes the findings, system designs, technical hurdles, and li
 Our implementation maps virtual networks directly to Purdue Model levels:
 1.  **Purdue Level 3 (Operations/SCADA):** Deployed as `mgmt-net` (`10.10.10.0/24`) containing `attacker-host` (Kali Linux) and `scada-hmi` (Node-RED).
 2.  **Purdue Level 2 (Engineering):** Deployed as `operations-net` (`192.168.100.0/24`) containing `engineering-station` (vulnerable API server).
-3.  **Purdue Level 1 (Control/PLC):** Deployed as `control-net` (`192.168.200.0/24`) containing `openplc-node` (OpenPLC Modbus server).
+3.  **Purdue Level 1 (Control/PLC):** Deployed as `control-net` (`192.168.20.0/24`) containing `openplc-node` (OpenPLC Modbus server).
 
 ### Declarative Provisioning Configuration
 *   **Topologies:** The sandbox structure is declared in a single `topology.yml` matching network subnets and static IP maps to virtual ports inside OpenStack.
@@ -62,6 +62,13 @@ We identified three operational complexities relating to the platform's native S
 2.  **VM User Account Access:** The downloaded configuration specifies `User user` for connections. However, the user account `user` is only created during the optional user-stage of pool provisioning. Early administrative access or manual scenario debugging requires connecting as the base VM user (`debian` or `ubuntu`) using the range's management key.
 3.  **Dynamic IP Drift on Reallocation:** Every time a sandbox pool is re-allocated or updated, the internal router and gateway (e.g., `man`) IP addresses change. Stale config files will attempt to jump through old, inactive gateway IPs, causing SSH connections to hang indefinitely at the `Connecting to IP port 22` stage.
 
+### E. Sandbox IP Range Collisions with Hypervisor Management Networks
+During multi-subnet routing design, we identified a critical routing collision that occurs if sandbox subnets overlap with the parent hypervisor's management infrastructure:
+*   **The Overlap:** The CyberRangeCZ deployment allocates a very large address block (**`192.168.128.0/17`**) for its out-of-band management and DHCP interfaces (`man-network`).
+*   **The Conflict:** If you assign an overlapping subnet to a sandbox zone (such as using `192.168.200.0/24` for a control cell network), the host VMs prioritize the directly connected kernel route on the management interface (`ens3`) over the default gateway router (`ens4`). 
+*   **The Failure:** Packets sent to target hosts are misrouted directly out of the management interface onto the OOB bridge (which lacks a handler for that IP), leading to 100% packet loss and connection timeouts.
+*   **The Remediation:** To bypass this conflict, all custom sandbox subnets must be configured outside the `192.168.128.0/17` range (for example, using `192.168.20.0/24` for control cells and `192.168.100.0/24` for operations), which forces the VM network stacks to route traffic correctly through the default gateway router interfaces.
+
 ---
 
 ## ❌ 4. Evaluation of the "Shared SSH Key" Design Flaw
@@ -90,7 +97,7 @@ To resolve this design flaw and create a highly realistic training scenario, we 
     import os
     os.system("cat /root/flag3.txt > /opt/OpenPLC_v3/webserver/st_files/flag.txt")
     ```
-*   **Web-Based Flag Extraction:** Once OpenPLC compiles the program, it executes the PSM script as root, copying the flag into the public web server directory. The attacker retrieves the flag using a standard HTTP request to `http://192.168.200.10:8080/st_files/flag.txt`, completing the level without utilizing any unrealistic operating system SSH keys.
+*   **Web-Based Flag Extraction:** Once OpenPLC compiles the program, it executes the PSM script as root, copying the flag into the public web server directory. The attacker retrieves the flag using a standard HTTP request to `http://192.168.20.10:8080/st_files/flag.txt`, completing the level without utilizing any unrealistic operating system SSH keys.
 
 ### The Topology Visualization Bug's Accidental Realism Catalyst
 During scenario validation, we discovered that if any host VM is configured as **dual-homed** (i.e. connected to two subnets simultaneously, such as HMI bridging operations and management subnets), the CyberRangeCZ topology visualizer fails to render the network graph, displaying a completely blank canvas in the student web portal.
