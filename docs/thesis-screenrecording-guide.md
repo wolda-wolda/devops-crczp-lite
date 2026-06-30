@@ -26,6 +26,14 @@ This checklist and step-by-step recording guide ensures you capture all the nece
 
 ## 🎬 Step-by-Step Recording Script
 
+### Section 0: Sandbox Import & Pool Allocation (Duration: ~1m, Sped Up)
+1. **Scenario Import:** Show the browser in the CyberRangeCZ portal under **Sandbox Definitions**. Click the **Import** button and select the scenario zip file containing `topology.yml` and provisioning playbooks.
+2. **Allocation Trigger:** Go to the **Pools** tab, click **Create Pool**, choose your newly imported definition, set the size to `1`, and name it (e.g. `complex-ot-training`).
+3. **Build Stage:** Show the allocation status entering the `BUILDING` state. (Note: Stop/pause recording here, or speed this up in editing, as the OpenTofu orchestration and Ansible VM compilation takes ~15–20 minutes).
+4. **Active State:** Resume the recording showing the pool entering the `ACTIVE` state, confirming all 5 VMs successfully deployed.
+
+---
+
 ### Section 1: The Portal & Topology Visualization (Duration: ~45s)
 1. **Start Screen:** Show the CyberRangeCZ Portal dashboard showing your active OT pool.
 2. **Definition Details:** Navigate to the Sandbox Definition detail view. Point out the single-homed VM layout.
