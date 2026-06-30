@@ -1,6 +1,9 @@
 # CyberRangeCZ Portal: Deploying the OT Sandbox Step-by-Step
 
-This guide walks you through the step-by-step process of using the **CyberRangeCZ Web Portal** to import, allocate, and run the OT exploit-and-sabotage training scenario.
+This guide walks you through the step-by-step process of using the **CyberRangeCZ Web Portal** to import, allocate, and run the OT exploit-and-sabotage training scenarios. It applies to both:
+
+- **Simple OT Sandbox** (`simple-ot-sandbox`) — 3-level foundational scenario
+- **Complex OT Sandbox** (`complex-operator-ot-sandbox`) — 6-level advanced EWS pivot scenario
 
 ---
 
@@ -46,7 +49,9 @@ The training definition (stored in `training.json` in the same repository) defin
    * **Git URL:** Same URL as the sandbox definition above.
    * **Revision:** `main`
 4. Click **Save**.
-5. The portal will parse `training.json` and display the training title: **Simple OT Simulation Sandbox**.
+5. The portal will parse `training.json` and display the training title:
+   - Simple sandbox: **"Operation Flow: Simple OT Hijack and Sabotage"**
+   - Complex sandbox: **"Operation Waterborne: Industrial Control Hijack and Pivoting"**
 
 ---
 
@@ -74,8 +79,8 @@ Once the pool is **Active**, create a training instance to run the interactive s
 1. In the left sidebar, navigate to **Trainings** > **Instances**.
 2. Click **Create**.
 3. Fill in the form:
-   * **Training Definition:** Select **Simple OT Simulation Sandbox**.
-   * **Sandbox Pool:** Select the pool you allocated in Step 3.
+    * **Training Definition:** Select the appropriate training definition (e.g. **"Operation Flow: Simple OT Hijack and Sabotage"** or **"Operation Waterborne: Industrial Control Hijack and Pivoting"**).
+    * **Sandbox Pool:** Select the pool you allocated in Step 3.
 4. Click **Save**.
 5. Go to the **Runs** tab of your training instance.
 6. Click **Create Run** and assign participants.
@@ -92,10 +97,21 @@ Once the training run is active, you can interact with the virtual machines:
    * Click on any host (e.g., `attacker-host`).
    * Click the **Web Console** link.
    * A new browser tab will open using the integrated Apache Guacamole client, giving you full interactive remote control over the virtual machine directly within your browser window.
+
+> [!IMPORTANT]
+> **Always use the Guacamole Web Console for trainee sessions.** The command tracking pipeline (Assessment, Command Timeline, Command Analysis tabs) only captures commands typed inside the Guacamole terminal. Direct SSH access bypasses all logging. See [command-tracking-and-assessment.md](./command-tracking-and-assessment.md) for full details.
+
 3. Key services accessible from within the sandbox:
-   * **Node-RED Flow Editor:** `http://10.10.10.10:1880/` (from the attacker host or SCADA HMI)
+
+   **Simple OT Sandbox:**
+   * **Node-RED Flow Editor (HMI):** `http://10.10.10.10:1880/` (from the attacker host)
    * **OpenPLC Admin Panel:** `http://192.168.99.10:8080/` (from the SCADA HMI only — blocked from the attacker by the router firewall)
      * Default credentials: `openplc` / `openplc`
+
+   **Complex OT Sandbox:**
+   * **Node-RED Flow Editor (HMI):** `http://192.168.100.10:1880/` (from the attacker host — `attacker-host` on `10.10.10.50`)
+   * **Engineering Workstation (EWS):** `192.168.20.20` — accessible via SSH pivot from the SCADA HMI only
+   * **OpenPLC (PLC):** `192.168.20.10` — Modbus port 502, accessible from the EWS only
 
 ---
 
@@ -114,5 +130,7 @@ To free up CPU and RAM on your server when you are done:
 ## Related Documentation
 
 - [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Repository structure, topology, and Ansible role reference
-- [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
+- [Simple OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough (simple scenario)
+- [Complex OT Sandbox Solutions](./complex-ot-solutions.md) — Complete training solution walkthrough (complex EWS pivot scenario)
+- [Command Tracking & Assessment](./command-tracking-and-assessment.md) — How assessment tabs work and their limitations
 - [Troubleshooting Commands](./troubleshooting-commands.md) — CLI reference for debugging
