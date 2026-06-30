@@ -1,0 +1,13 @@
+● safety-monitor.service - OT Safety Override Monitor
+     Loaded: loaded (/etc/systemd/system/safety-monitor.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-06-30 13:10:38 UTC; 1h 2min ago
+   Main PID: 3755 (python3)
+      Tasks: 1 (limit: 2348)
+     Memory: 12.8M
+        CPU: 596ms
+     CGroup: /system.slice/safety-monitor.service
+             └─3755 /usr/bin/python3 /opt/safety_monitor.py
+
+Jun 30 13:10:38 engineering-station systemd[1]: Started safety-monitor.service - OT Safety Override Monitor.
+Jun 30 13:10:38 engineering-station python3[3755]: Connection to (192.168.20.10, 502) failed: [Errno 111] Connection refused
+Jun 30 13:10:39 engineering-station python3[3755]: Repeating....

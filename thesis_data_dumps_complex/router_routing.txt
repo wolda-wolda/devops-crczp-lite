@@ -1,0 +1,6 @@
+default via 100.100.100.199 dev ens4 proto static onlink 
+10.10.10.0/24 dev ens5 proto kernel scope link src 10.10.10.1 metric 100 
+100.100.100.0/24 dev ens4 proto kernel scope link src 100.100.100.97 metric 100 
+192.168.20.0/24 dev ens7 proto kernel scope link src 192.168.20.1 metric 100 
+192.168.100.0/24 dev ens6 proto kernel scope link src 192.168.100.1 metric 100 
+192.168.128.0/17 dev ens3 proto kernel scope link src 192.168.128.251 metric 100 

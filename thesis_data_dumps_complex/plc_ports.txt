@@ -1,0 +1,13 @@
+State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                                   
+LISTEN 0      5            0.0.0.0:44818      0.0.0.0:*    users:(("openplc",pid=11934,fd=5))       
+LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*    users:(("systemd-resolve",pid=406,fd=18))
+LISTEN 0      128          0.0.0.0:8080       0.0.0.0:*    users:(("python3",pid=11927,fd=5))       
+LISTEN 0      4096      127.0.0.54:53         0.0.0.0:*    users:(("systemd-resolve",pid=406,fd=20))
+LISTEN 0      128          0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=501,fd=3))            
+LISTEN 0      4096         0.0.0.0:102        0.0.0.0:*    users:(("openplc",pid=11934,fd=7))       
+LISTEN 0      5          127.0.0.1:43628      0.0.0.0:*    users:(("openplc",pid=11934,fd=3))       
+LISTEN 0      4096         0.0.0.0:5355       0.0.0.0:*    users:(("systemd-resolve",pid=406,fd=12))
+LISTEN 0      128          0.0.0.0:8443       0.0.0.0:*    users:(("python3",pid=11927,fd=4))       
+LISTEN 0      5            0.0.0.0:502        0.0.0.0:*    users:(("openplc",pid=11934,fd=4))       
+LISTEN 0      128             [::]:22            [::]:*    users:(("sshd",pid=501,fd=4))            
+LISTEN 0      4096            [::]:5355          [::]:*    users:(("systemd-resolve",pid=406,fd=14))

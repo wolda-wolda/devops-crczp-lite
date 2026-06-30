@@ -1,0 +1,8 @@
+Modbus_port|502
+Dnp3_port|disabled
+Start_run_mode|true
+Slave_polling|100
+Slave_timeout|1000
+Enip_port|44818
+Pstorage_polling|disabled
+snap7|true

@@ -1,0 +1,53 @@
+Host 10.1.2.184
+    HostName 10.1.2.184
+    User debian
+    Port 22
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host man-complex 192.168.130.200
+    HostName 192.168.130.200
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@10.1.2.184
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host complex-scada-hmi 192.168.128.159
+    HostName 192.168.128.159
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man-complex
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host complex-ews 192.168.128.214
+    HostName 192.168.128.214
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man-complex
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host complex-openplc 192.168.131.168
+    HostName 192.168.131.168
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man-complex
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host complex-gateway 192.168.128.251
+    HostName 192.168.128.251
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man-complex
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
