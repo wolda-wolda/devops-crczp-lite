@@ -329,6 +329,22 @@ CPU time consumed by runtimes relative to actual VM uptime:
 - **Virtualized OpenPLC on Linux:** OpenPLC runs as a standard Linux userland process under the CFS (Completely Fair Scheduler) using the `SCHED_OTHER` policy. The Linux kernel provides no execution scheduling guarantees. Under host CPU stress (such as compiling another VM or processing high network traffic), the control cycle scan time can experience jitter exceeding **10 to 50 ms**.
 - **Thesis Conclusion:** This limitation is acceptable for the sandbox's target use case. Security training is concerned with **functional logic equivalence** (did the write command reach register 0? Did the pump stop?). It does not require sub-millisecond physical system modeling. Jitter is a minor concession that allows for high sandbox density (8 VMs running on a standard laptop) rather than dedicated hardware testbeds.
 
+#### 3.8.3 Modbus TCP Latency & Jitter Measurements
+
+*Methodology: Measured directly from the `engineering-station` guest VM (`192.168.20.20`) targeting the `openplc-node` (`192.168.20.10`). Sample size: 20 packets. Jitter calculated as standard deviation.*
+
+| Timing Metric | ICMP Ping (L3 Network) | Modbus TCP read_holding_registers() (L7 Application) | Real Hardware PLC (Reference) |
+|---|---|---|---|
+| **Minimum RTT** | **0.395 ms** | **0.536 ms** | < 0.1 ms |
+| **Average RTT** | **0.590 ms** | **0.686 ms** | < 1.0 ms |
+| **Maximum RTT** | **0.902 ms** | **0.933 ms** | < 1.5 ms |
+| **Jitter (stdev)** | **0.137 ms** | **0.103 ms** | **< 0.05 ms** (determinism limit) |
+
+**Analysis for Thesis:**
+1. **Network Overhead:** Traversing the virtualized OpenStack Neutron network gateway (`ot-gateway`) introduces an average network transit latency of **0.590 ms** for standard ICMP packets.
+2. **Application Processing Overhead:** The Modbus TCP application layer adds minimal additional overhead (**~0.096 ms** difference between ICMP average RTT and Modbus average RTT), indicating that the OpenPLC Python/C++ server runtime handles packet transactions efficiently at rest.
+3. **Comparative Jitter Overhead:** The measured Modbus application jitter (**0.103 ms**) is roughly **2× higher** than a hardware PLC RTOS baseline target (< 0.05 ms). This demonstrates the latency variations introduced by standard Linux kernel process scheduling (`SCHED_OTHER`) even at idle state. Under active hypervisor load, this jitter is expected to scale significantly, validating the non-deterministic nature of emulated environments.
+
 ---
 
 ### 3.9 Modbus TCP PCAP Analysis
