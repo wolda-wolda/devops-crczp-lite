@@ -88,16 +88,12 @@ This design compromise highlights a fundamental conflict between **gamified trai
 4.  **Operational Compromise of CTF Sandboxes:** To make the sandbox deployable and automatically gradable inside CyberRangeCZ, the designers chose to run OpenPLC as a service on a full Debian OS image and distribute the pool's SSH key to the node. While this is unrealistic, it is a compromise to allow the platform's automatic checker script to ssh in and verify progress.
 
 ### A Realistic, SSH-Free Compromise (The Complex EWS Pivot Scenario)
-To resolve this design flaw and create a highly realistic training scenario, we developed the **`complex-ot-sandbox`** variant. This architecture removes all shared SSH keys between the nodes and models a realistic pivot exploit chain:
+To resolve this design flaw and create a highly realistic training scenario, we developed the **`complex-operator-ot-sandbox`** variant. This architecture removes all shared SSH keys between the nodes and models a realistic pivot exploit chain mimicking historical breaches:
 
-*   **Purdue Network Segmentation:** We separated the SCADA network from the PLC control network using a gateway firewall. The SCADA host (`scada-hmi`) is blocked from the PLC's SSH (22) and Web Admin (8080) ports and is restricted to Modbus TCP (502).
-*   **The Engineering Workstation (EWS) Pivot:** We introduced the EWS node (`engineering-station`). In a real plant, EWS nodes are the only machines authorized to upload logic to PLCs. We simulated a vulnerable management API on the EWS on port `5000` (command injection) which the attacker exploits from the compromised SCADA host to gain a shell on the EWS.
-*   **PLC Logic Exploitation via Default Credentials:** From the EWS, the attacker connects to the OpenPLC Web Admin Panel on port `8080` (which is allowed by the firewall). The attacker logs in using default credentials (`openplc`/`openplc`) and exploits OpenPLC's custom **Python SubModule (PSM)** hardware layer feature to upload a Python payload:
-    ```python
-    import os
-    os.system("cat /root/flag3.txt > /opt/OpenPLC_v3/webserver/st_files/flag.txt")
-    ```
-*   **Web-Based Flag Extraction:** Once OpenPLC compiles the program, it executes the PSM script as root, copying the flag into the public web server directory. The attacker retrieves the flag using a standard HTTP request to `http://192.168.20.10:8080/st_files/flag.txt`, completing the level without utilizing any unrealistic operating system SSH keys.
+*   **Purdue Network Segmentation:** We segmented the network into Corporate (`10.10.10.0/24`), Operations (`192.168.100.0/24`), and Control (`192.168.20.0/24`) zones using a gateway firewall router (`ot-gateway`).
+*   **SCADA HMI Compromise (Florida Oldsmar Hack):** The attacker compromises an exposed, unauthenticated Node-RED interface on the SCADA HMI (`192.168.100.10`). In addition to finding a local flag, the attacker discovers a plain-text credential backup file (`ews_credentials.txt`) stored by an operator on the SCADA host.
+*   **EWS Lateral Pivot (Ukraine Power Grid):** Using the stolen credentials (`operator` / `operator123`), the attacker SSHs into the Engineering Workstation (`192.168.20.20`) and scans the control network to discover the PLC IP (`192.168.20.10`).
+*   **Process Sabotage (Modbus Hijack):** From the EWS, the attacker uses the Modbus TCP client to directly write `0` to Holding Register 0 (Address 40001) on the PLC, shutting down a critical cooling pump. The EWS safety monitor captures this protocol change and writes `FLAG{PUMP_DISABLED_SUCCESS}` to `/var/log/safety_override.txt` to confirm the exploit without using any unrealistic operating system shell access on the PLC itself.
 
 ### The Topology Visualization Bug's Accidental Realism Catalyst
 During scenario validation, we discovered that if any host VM is configured as **dual-homed** (i.e. connected to two subnets simultaneously, such as HMI bridging operations and management subnets), the CyberRangeCZ topology visualizer fails to render the network graph, displaying a completely blank canvas in the student web portal.
@@ -128,7 +124,7 @@ Real-world PLCs operate on deterministic scan cycle schedules (typically < 10ms 
 ### D. Hypervisor Memory Starvation & OpenStack Instance ERROR State
 During deployment scaling, we identified a critical operational resource constraint in nested environments:
 *   **The Bottleneck:** While disk space is easily managed using base image shrinking, hypervisor physical memory (RAM) acts as the hard limit for sandbox density. Sizing allocations for a single pool (including Kali and server VMs) require over 18GB of active memory reservation.
-*   **The Failure Mode:** When attempting to allocate a new sandbox pool (e.g., `complex-ot-sandbox`) while a previous pool remains active, the OpenStack Nova scheduler experiences memory starvation (OOM). 
+*   **The Failure Mode:** When attempting to allocate a new sandbox pool (e.g., `complex-operator-ot-sandbox`) while a previous pool remains active, the OpenStack Nova scheduler experiences memory starvation (OOM). 
 *   **The Error Symptom:** OpenTofu/Terraform deployment outputs show newly spawned nodes entering the `ERROR` state instead of `ACTIVE` (`unexpected state 'ERROR', wanted target 'ACTIVE'`), with a generic empty error string (`last error: %!s(<nil>)`).
 *   **Operational Mitigation:** Content creators and instructors must strictly enforce single-active-pool constraints on lower-spec hypervisors (e.g., < 64GB RAM). Previous sandbox pools must be completely deleted/destroyed in the portal UI to release the hypervisor memory reservation before a new sandbox can be allocated.
 
