@@ -1,0 +1,11 @@
+● simulation-monitor.service - Simulation Monitor for OT Sabotage
+     Loaded: loaded (/etc/systemd/system/simulation-monitor.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-06-30 08:03:38 UTC; 1min 20s ago
+   Main PID: 12062 (python3)
+      Tasks: 1 (limit: 2348)
+     Memory: 3.8M
+        CPU: 33ms
+     CGroup: /system.slice/simulation-monitor.service
+             └─12062 /usr/bin/python3 /opt/simulation_monitor.py
+
+Jun 30 08:03:38 openplc-node systemd[1]: Started simulation-monitor.service - Simulation Monitor for OT Sabotage.

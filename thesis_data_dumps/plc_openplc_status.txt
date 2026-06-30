@@ -1,0 +1,22 @@
+● openplc.service - OpenPLC Service
+     Loaded: loaded (/etc/systemd/system/openplc.service; enabled; preset: enabled)
+     Active: active (running) since Tue 2026-06-30 08:03:35 UTC; 1min 23s ago
+   Main PID: 11900 (start_openplc.s)
+      Tasks: 9 (limit: 2348)
+     Memory: 93.7M
+        CPU: 1.479s
+     CGroup: /system.slice/openplc.service
+             ├─11900 /bin/bash /opt/OpenPLC_v3/start_openplc.sh
+             ├─11901 /opt/OpenPLC_v3/.venv/bin/python3 webserver.py
+             └─11919 ./core/openplc
+
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Server: Client accepted! Creating thread for the new client ID: 6...
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Server: waiting for new client...
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Server: Thread created for client ID: 6
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Modbus Server: client ID: 6 has closed the connection
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Terminating Modbus connections thread
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Server: Client accepted! Creating thread for the new client ID: 6...
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Server: waiting for new client...
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Server: Thread created for client ID: 6
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Modbus Server: client ID: 6 has closed the connection
+Jun 30 08:04:56 openplc-node start_openplc.sh[11919]: Terminating Modbus connections thread

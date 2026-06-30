@@ -1,0 +1,53 @@
+Host 10.1.2.184
+    HostName 10.1.2.184
+    User debian
+    Port 22
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host man 192.168.131.8
+    HostName 192.168.131.8
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@10.1.2.184
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host attacker-host 10.10.10.50
+    HostName 10.10.10.50
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host scada-hmi 10.10.10.10
+    HostName 10.10.10.10
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host openplc-node 192.168.99.10
+    HostName 192.168.99.10
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False
+
+Host ot-router 10.10.10.1
+    HostName 10.10.10.1
+    User debian
+    IdentityFile /opt/cyber-range/devops-crczp-lite/thesis_data_dumps/management_key
+    ProxyJump debian@man
+    UserKnownHostsFile /dev/null
+    IdentitiesOnly True
+    StrictHostKeyChecking False

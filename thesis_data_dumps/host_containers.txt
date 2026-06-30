@@ -1,0 +1,31 @@
+CONTAINER ID   IMAGE                                                                   COMMAND                  CREATED       STATUS                    PORTS     NAMES
+a13388b86d81   quay.io/openstack.kolla/horizon:2025.1-ubuntu-noble                     "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             horizon
+2c007ae9f420   quay.io/openstack.kolla/neutron-metadata-agent:2025.1-ubuntu-noble      "dumb-init --single-…"   12 days ago   Up 16 minutes                       neutron_metadata_agent
+f8e84673b200   quay.io/openstack.kolla/neutron-l3-agent:2025.1-ubuntu-noble            "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             neutron_l3_agent
+4044a0415430   quay.io/openstack.kolla/neutron-dhcp-agent:2025.1-ubuntu-noble          "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             neutron_dhcp_agent
+8d2d392b788c   quay.io/openstack.kolla/neutron-openvswitch-agent:2025.1-ubuntu-noble   "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             neutron_openvswitch_agent
+a7e077e1f7c7   quay.io/openstack.kolla/neutron-server:2025.1-ubuntu-noble              "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             neutron_server
+8db3038a8cf0   quay.io/openstack.kolla/nova-compute:2025.1-ubuntu-noble                "dumb-init --single-…"   12 days ago   Up 15 minutes (healthy)             nova_compute
+66a85f69a24e   quay.io/openstack.kolla/nova-libvirt:2025.1-ubuntu-noble                "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             nova_libvirt
+c391ad4aad02   quay.io/openstack.kolla/nova-ssh:2025.1-ubuntu-noble                    "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             nova_ssh
+ad1d21d67924   quay.io/openstack.kolla/nova-novncproxy:2025.1-ubuntu-noble             "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             nova_novncproxy
+70e7a3bc4c2d   quay.io/openstack.kolla/nova-conductor:2025.1-ubuntu-noble              "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             nova_conductor
+3d62561ffce4   quay.io/openstack.kolla/nova-api:2025.1-ubuntu-noble                    "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             nova_metadata
+ed2cab102e6f   quay.io/openstack.kolla/nova-api:2025.1-ubuntu-noble                    "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             nova_api
+bc0848b45af3   quay.io/openstack.kolla/nova-scheduler:2025.1-ubuntu-noble              "dumb-init --single-…"   12 days ago   Up 15 minutes (healthy)             nova_scheduler
+e440102f9b4c   quay.io/openstack.kolla/openvswitch-vswitchd:2025.1-ubuntu-noble        "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             openvswitch_vswitchd
+f7a44065a7a0   quay.io/openstack.kolla/openvswitch-db-server:2025.1-ubuntu-noble       "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             openvswitch_db
+845317500a5b   quay.io/openstack.kolla/placement-api:2025.1-ubuntu-noble               "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             placement_api
+e06285aec1d2   quay.io/openstack.kolla/glance-api:2025.1-ubuntu-noble                  "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             glance_api
+375b1280d950   quay.io/openstack.kolla/keystone:2025.1-ubuntu-noble                    "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             keystone
+15274fe6041c   quay.io/openstack.kolla/keystone-fernet:2025.1-ubuntu-noble             "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             keystone_fernet
+85b9b54ac70f   quay.io/openstack.kolla/keystone-ssh:2025.1-ubuntu-noble                "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             keystone_ssh
+ef52b7943327   quay.io/openstack.kolla/rabbitmq:2025.1-ubuntu-noble                    "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             rabbitmq
+7eeaf45775d9   quay.io/openstack.kolla/memcached:2025.1-ubuntu-noble                   "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             memcached
+9c5adb74e42f   quay.io/openstack.kolla/mariadb-server:2025.1-ubuntu-noble              "dumb-init -- kolla_…"   12 days ago   Up 16 minutes (healthy)             mariadb
+beb89a4f687d   quay.io/openstack.kolla/keepalived:2025.1-ubuntu-noble                  "dumb-init --single-…"   12 days ago   Up 16 minutes                       keepalived
+47970553ca8f   quay.io/openstack.kolla/proxysql:2025.1-ubuntu-noble                    "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             proxysql
+a47aa17ef111   quay.io/openstack.kolla/haproxy:2025.1-ubuntu-noble                     "dumb-init --single-…"   12 days ago   Up 16 minutes (healthy)             haproxy
+e2580d4802d4   quay.io/openstack.kolla/cron:2025.1-ubuntu-noble                        "dumb-init --single-…"   12 days ago   Up 16 minutes                       cron
+965f9e8946ea   quay.io/openstack.kolla/kolla-toolbox:2025.1-ubuntu-noble               "dumb-init --single-…"   12 days ago   Up 16 minutes                       kolla_toolbox
+1848caac00a8   quay.io/openstack.kolla/fluentd:2025.1-ubuntu-noble                     "dumb-init --single-…"   12 days ago   Up 16 minutes                       fluentd
