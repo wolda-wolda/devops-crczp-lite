@@ -66,18 +66,31 @@ We identified three operational complexities relating to the platform's native S
 
 ## ❌ 4. Evaluation of the "Shared SSH Key" Design Flaw
 
-Standard training environments frequently authorize a single SSH private key across all nodes in a sandbox, allowing the student to verify their attack by SSHing to the PLC and reading a flag (e.g., `/root/flag2.txt`).
+Standard training environments frequently deploy identical SSH private keys across all guest instances in a sandbox pool. This allows the student to easily pivot from a compromised SCADA HMI to the isolated PLC and read a filesystem flag (e.g., `/root/flag2.txt` or `/root/flag3.txt`) to complete the training level. 
 
-*   **The Problem:** In a real-world OT system, this is highly unrealistic. PLCs are embedded controllers that run proprietary RTOS, do not host SSH daemons, and never share OS credentials with SCADA networks.
-*   **The Pivot Workaround:** To design a realistic scenario, we deployed the **`complex-ot-sandbox`** introducing a multi-hop pivoting chain using a dedicated **Engineering Workstation (EWS)** and exploiting default OpenPLC web admin credentials on port `8080` (without using SSH keys):
-    1.  **SCADA RCE:** Compromise Node-RED on HMI (`scada-hmi`).
-    2.  **EWS Pivot:** Exploit a command injection vulnerability in the EWS backup API on port `5000` to pivot to the control network.
-    3.  **PLC logic Compromise:** Connect from the EWS to the PLC's OpenPLC admin page (`192.168.200.10:8080`). Log in with default credentials (`openplc`/`openplc`) and upload a custom Python submodule payload (PSM) that writes the flag file to the public directory:
-        ```python
-        import os
-        os.system("cat /root/flag3.txt > /opt/OpenPLC_v3/webserver/st_files/flag.txt")
-        ```
-    4.  **Download Flag:** Retrieve the flag via HTTP (`http://192.168.200.10:8080/st_files/flag.txt`).
+However, in a real-world industrial security audit, this approach introduces a significant architectural anomaly.
+
+### The Tension Between Training Gamification and Real-World Fidelity
+This design compromise highlights a fundamental conflict between **gamified training requirements** (Capture the Flag scoring) and **real-world physical fidelity**:
+
+1.  **Operating System Anomalies on PLCs:** Real-world programmable logic controllers (e.g., Siemens S7, Allen-Bradley ControlLogix) are dedicated embedded hardware devices running custom microkernels or proprietary real-time operating systems (RTOS) like VxWorks or QNX. They do not run standard Unix SSH servers (`sshd`), nor do they support multi-user shell execution (`/bin/bash`).
+2.  **Lack of Shared Authentication Keys:** In real-world industrial architectures, SCADA HMI web servers and PLCs communicate strictly via fieldbus or industrial network protocols (such as Modbus TCP, DNP3, or Profinet) on specific application ports. They never share operating system credentials, SSH keys, or active filesystem interfaces.
+3.  **Real-World Attack Validation:** During an actual industrial cyber-attack (e.g., Industroyer or Stuxnet), an attacker does not verify the success of their process manipulation by SSHing into a PLC to read a text file. Instead, they check their success by:
+    *   **Modbus Telemetry Feedback:** Querying the register values back via Modbus TCP (Function Code 3) to ensure the register retains the modified state.
+    *   **SCADA Out-of-Band Verification:** Monitoring the SCADA visualization screen to see physical telemetry changes (e.g., water tank levels, motor speeds).
+4.  **Operational Compromise of CTF Sandboxes:** To make the sandbox deployable and automatically gradable inside CyberRangeCZ, the designers chose to run OpenPLC as a service on a full Debian OS image and distribute the pool's SSH key to the node. While this is unrealistic, it is a compromise to allow the platform's automatic checker script to ssh in and verify progress.
+
+### A Realistic, SSH-Free Compromise (The Complex EWS Pivot Scenario)
+To resolve this design flaw and create a highly realistic training scenario, we developed the **`complex-ot-sandbox`** variant. This architecture removes all shared SSH keys between the nodes and models a realistic pivot exploit chain:
+
+*   **Purdue Network Segmentation:** We separated the SCADA network from the PLC control network using a gateway firewall. The SCADA host (`scada-hmi`) is blocked from the PLC's SSH (22) and Web Admin (8080) ports and is restricted to Modbus TCP (502).
+*   **The Engineering Workstation (EWS) Pivot:** We introduced the EWS node (`engineering-station`). In a real plant, EWS nodes are the only machines authorized to upload logic to PLCs. We simulated a vulnerable management API on the EWS on port `5000` (command injection) which the attacker exploits from the compromised SCADA host to gain a shell on the EWS.
+*   **PLC Logic Exploitation via Default Credentials:** From the EWS, the attacker connects to the OpenPLC Web Admin Panel on port `8080` (which is allowed by the firewall). The attacker logs in using default credentials (`openplc`/`openplc`) and exploits OpenPLC's custom **Python SubModule (PSM)** hardware layer feature to upload a Python payload:
+    ```python
+    import os
+    os.system("cat /root/flag3.txt > /opt/OpenPLC_v3/webserver/st_files/flag.txt")
+    ```
+*   **Web-Based Flag Extraction:** Once OpenPLC compiles the program, it executes the PSM script as root, copying the flag into the public web server directory. The attacker retrieves the flag using a standard HTTP request to `http://192.168.200.10:8080/st_files/flag.txt`, completing the level without utilizing any unrealistic operating system SSH keys.
 
 ---
 
