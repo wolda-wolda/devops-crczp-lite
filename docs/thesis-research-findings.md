@@ -155,11 +155,17 @@ During deployment scaling, we identified a critical operational resource constra
 
 ### E. Linear vs. Adaptive Training Pathways
 During scenario packaging, we evaluated the deployment of linear vs. adaptive training definitions:
+* **The Definition & Structural Differences (Source: *Vykopal et al., 2020*):**
+  * **Linear Training:** A traditional, sequential model where all trainees follow a rigid, pre-defined path of phases or levels (e.g. foothold -> lateral pivot -> protocol sabotage). Trainees must submit correct answer keys or flags to unlock subsequent phases, and all participants encounter identical challenges regardless of prior proficiency or progress speed.
+  * **Adaptive Training:** A personalized model where the training scenario dynamically adapts to individual student actions, timing, and errors in real-time. If the system detects a student struggling (via hint requests, slow completion rates, or failed login attempts), it dynamically routes them to a simplified helper network zone or lowers task difficulty. Conversely, if a student excels, the system inserts additional hurdles (e.g. secondary firewalls or dynamic honeytokens) to sustain engagement.
 * **The Constraint:** Implementing adaptive training pathways (branching states, performance-based paths, and hint-penalty loops) requires complex state-machine declarations inside CyberRangeCZ, which increases development overhead and risk of deployment failures in time-constrained settings.
 * **The Strategy:** The current scenario implementation uses a robust **linear pathway** (`training.json`), ensuring consistent execution. However, the platform's native adaptive pathways represent a major feasibility extension.
 * **Pedagogical Branching Design:** 
   1. *Remediation Path:* If a student struggles to exploit the unauthenticated Node-RED interface (Level 2) and requests multiple hint packages, the adaptive scheduler can branch them to an auxiliary container tutorial detailing child process shell command executions in Node.js.
   2. *Advanced Path:* If a student completes the EWS pivot (Level 3) rapidly without requesting any hints, the scheduler can dynamically skip basic Modbus register writing and branch them directly to an advanced Level 4 where they must analyze and inject Siemens S7comm protocol variations, increasing the training cognitive load dynamically.
+
+> **Academic Reference Source:**
+> *Vykopal, J., Seda, V., & Tovarnak, D. (2020). "Design and Evaluation of Adaptive Cybersecurity Training in Cyber Ranges." In Proceedings of the 51st ACM Technical Symposium on Computer Science Education (SIGCSE).*
 
 ---
 
