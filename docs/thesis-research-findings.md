@@ -118,6 +118,13 @@ Spawning sandboxes for multiple students requires careful resource budgeting:
 ### C. Emulation Scheduling Jitter
 Real-world PLCs operate on deterministic scan cycle schedules (typically < 10ms jitter). A virtual PLC (OpenPLC) running as a Python process on a Debian Linux guest VM shares CPU scheduling with other virtual nodes and the parent host. Timing jitter occurs under CPU stress, meaning this emulation is suitable for logic and vulnerability testing but unsuitable for high-precision physical loops.
 
+### D. Hypervisor Memory Starvation & OpenStack Instance ERROR State
+During deployment scaling, we identified a critical operational resource constraint in nested environments:
+*   **The Bottleneck:** While disk space is easily managed using base image shrinking, hypervisor physical memory (RAM) acts as the hard limit for sandbox density. Sizing allocations for a single pool (including Kali and server VMs) require over 18GB of active memory reservation.
+*   **The Failure Mode:** When attempting to allocate a new sandbox pool (e.g., `complex-ot-sandbox`) while a previous pool remains active, the OpenStack Nova scheduler experiences memory starvation (OOM). 
+*   **The Error Symptom:** OpenTofu/Terraform deployment outputs show newly spawned nodes entering the `ERROR` state instead of `ACTIVE` (`unexpected state 'ERROR', wanted target 'ACTIVE'`), with a generic empty error string (`last error: %!s(<nil>)`).
+*   **Operational Mitigation:** Content creators and instructors must strictly enforce single-active-pool constraints on lower-spec hypervisors (e.g., < 64GB RAM). Previous sandbox pools must be completely deleted/destroyed in the portal UI to release the hypervisor memory reservation before a new sandbox can be allocated.
+
 ---
 
 ## 📊 6. Modbus TCP Protocol Dissection
