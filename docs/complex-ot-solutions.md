@@ -114,6 +114,48 @@ This reveals the active PLC at **`192.168.20.10`**, ready for the Modbus sabotag
 
 ---
 
+### OT Device Enumeration — Going Beyond a Ping Sweep
+
+A ping sweep (`nmap -sn`) tells you which IP addresses are active, but not what they are. In a real /24 subnet with 200 hosts, you cannot distinguish a Windows workstation from an industrial robotic arm by host-discovery alone. Attackers move to **service and protocol enumeration** — looking for the specific ports and protocols that OT equipment speaks.
+
+#### Method 1: Targeted ICS Port Scan (The Noisy Approach)
+
+Industrial Control Systems use well-known dedicated ports. Instead of scanning all 65,535 ports (slow and alarm-triggering), scan exclusively for known ICS protocol ports. For a Modbus-controlled pump, target **TCP port 502**:
+
+```bash
+nmap -p 502 --open 192.168.20.0/24
+```
+
+*   **`-p 502`** — Only probe port 502.
+*   **`--open`** — Only show hosts where the port is actually listening.
+
+In this sandbox, OpenPLC is configured via its SQLite database to bind on port 502, so `192.168.20.10` is the only host that responds — instantly identifying the target.
+
+> [!NOTE]
+> Other common OT ports to scan for: `20000` (DNP3), `44818` (EtherNet/IP), `102` (Siemens S7comm), `4840` (OPC-UA).
+
+#### Method 2: Nmap Scripting Engine (NSE) for ICS Fingerprinting
+
+Once port 502 is confirmed open, Nmap's built-in ICS scripts can interrogate the device and extract its identity — no guessing required:
+
+```bash
+nmap -p 502 --script modbus-discover 192.168.20.0/24
+```
+
+If the PLC responds, this script returns its internal **device ID**, vendor information, and firmware version — completely unmasking the controller without any brute-force or exploit.
+
+#### Method 3: Passive Network Sniffing (The Realistic / Safe Approach)
+
+In real-world OT environments, active Nmap scanning is strongly discouraged. Legacy PLCs have fragile TCP/IP stacks — an aggressive scan can crash the device and halt physical production (a fast way to end a red team engagement). Instead, use passive observation from the already-compromised EWS:
+
+```bash
+sudo tcpdump -i eth0 -n port 502
+```
+
+Watching traffic for a few minutes reveals the EWS communicating with `192.168.20.10` over port 502 — confirming the PLC's identity and active protocol without sending a single aggressive probe into the control network. This "Living off the Land" technique leaves minimal forensic traces and does not risk destabilising production equipment.
+
+---
+
 ## Level 4: Process Sabotage (Modbus Hijack)
 
 **Objective:** Disable the cooling pump by writing `0` to Holding Register 0 on the PLC, and read the confirmation flag from `/var/log/safety_override.txt` on the EWS.
