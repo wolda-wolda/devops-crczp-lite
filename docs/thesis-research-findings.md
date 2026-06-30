@@ -120,6 +120,14 @@ While the sandbox environment abstracts certain complex engineering steps to rem
 *   **Ukraine Power Grid Attack:** Instead of multi-month reconnaissance, directory credential harvesting, and corporate VPN hijacking, the sandbox abstracts lateral entry via operator credential leakage (`ews_credentials.txt`) stored on the SCADA server. The pivoting path through firewalls to the EWS is identical.
 *   **Industroyer & Stuxnet:** Instead of writing specialized compiled payload drivers targeting proprietary RTUs/PLCs, the sandbox abstracts industrial payload delivery using pre-installed Modbus CLI tools. The vulnerability exploited — the lack of authentication in legacy industrial control protocols (Modbus TCP port 502) — is identical.
 
+#### Pedagogical Sizing: Cognitive Load and Foundational Bridging
+To evaluate the learning efficacy of the simplified `simple-ot-sandbox` against the `complex-ot-sandbox`, we apply **Cognitive Load Theory (CLT)** to the target audience profiles (IT security students transitioning to OT):
+1. **Extraneous Load Reduction:** A student entering OT training faces high intrinsic complexity (learning industrial register indices, MBAP headers, and protocol behaviors). The `simple-ot-sandbox` isolates these variables by using a flat, linear pivot path (Attacker -> HMI -> PLC). The student is not distracted by complex routing, SSH credentials, or pseudo-terminal (PTY) upgrades, allowing them to focus entirely on **what** a Modbus cleartext command injection is.
+2. **Pedagogical Staging Framework:**
+   * **Stage 1 (Simple Sandbox): Foundational Protocol Logic.** Focuses on baseline OT exposures: unauthenticated HMI consoles (Oldsmar reference), gateway routing boundaries, and the raw insecurity of cleartext Modbus TCP port 502 command execution.
+   * **Stage 2 (Complex Sandbox): Adversarial Pivoting & Lateral Movement.** Expands the scenario to include EWS hosts, credential harvesting, interactive reverse shells (requiring PTY spawning), network sweeps, and passive OT sniffing.
+3. **Outcome:** By separating the training into two distinct sandboxes, the range provides a progressive learning curve. Trainees build confidence in OT protocol manipulation before addressing the realistic network pivoting challenges modeled in historical APT campaigns (like Ukraine 2015).
+
 ### The Topology Visualization Bug's Accidental Realism Catalyst
 During scenario validation, we discovered that if any host VM is configured as **dual-homed** (i.e. connected to two subnets simultaneously, such as HMI bridging operations and management subnets), the CyberRangeCZ topology visualizer fails to render the network graph, displaying a completely blank canvas in the student web portal.
 
