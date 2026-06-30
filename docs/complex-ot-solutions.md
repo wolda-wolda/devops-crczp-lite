@@ -172,3 +172,60 @@ Watching traffic for a few minutes reveals the EWS communicating with `192.168.2
     cat /var/log/safety_override.txt
     ```
 3.  Copy the flag: **`FLAG{PUMP_DISABLED_SUCCESS}`**.
+
+---
+
+## MITRE ATT&CK Technique Mapping
+
+This scenario covers techniques from both **MITRE ATT&CK for ICS** (the OT-specific framework) and the overlapping **MITRE ATT&CK Enterprise** framework. Each sandbox level maps to one or more real-world adversary techniques.
+
+### ATT&CK for ICS Techniques
+
+| Level | Tactic | Technique ID | Technique Name | Description in Scenario |
+|---|---|---|---|---|
+| 2 | Initial Access | **T0819** | Exploit Public-Facing Application | Attacker connects to the unauthenticated Node-RED web interface exposed on the SCADA HMI |
+| 2 | Execution | **T0807** | Command and Scripting Interpreter | Bash commands executed as root via the Node-RED `exec` node |
+| 2 | Collection | **T0893** | Data from Local System | Attacker reads `/home/debian/ews_credentials.txt` from the SCADA host |
+| 3 | Lateral Movement | **T0859** | Valid Accounts | Stolen plaintext credentials (`operator`/`operator123`) used to authenticate to the EWS |
+| 3 | Discovery | **T0846** | Remote System Discovery | `nmap -sn 192.168.20.0/24` performs host discovery across the control subnet |
+| 3 | Discovery | **T0888** | Remote System Information Discovery | `nmap -p 502 --script modbus-discover` enumerates device identity from the PLC |
+| 3 | Collection | **T0842** | Network Sniffing | `tcpdump -i eth0 -n port 502` passively observes Modbus traffic to identify the PLC |
+| 4 | Impair Process Control | **T0855** | Unauthorized Command Message | Raw Modbus write command (`modbus 192.168.20.10 0=0`) sent to disable the cooling pump register |
+| 4 | Impair Process Control | **T0831** | Manipulation of Control | Pump register forced to `0`, overriding the active process control state |
+
+---
+
+### ATT&CK Enterprise Techniques (IT/OT Overlap)
+
+| Level | Tactic | Technique ID | Technique Name | Description in Scenario |
+|---|---|---|---|---|
+| 2 | Initial Access | **T1190** | Exploit Public-Facing Application | Unauthenticated Node-RED exposure on the Operations network |
+| 2 | Execution | **T1059.004** | Command and Scripting Interpreter: Unix Shell | Bash reverse shell spawned via Node-RED `exec` node |
+| 3 | Lateral Movement | **T1021.004** | Remote Services: SSH | SSH pivot from the compromised HMI into the EWS using stolen credentials |
+| 3 | Credential Access | **T1552.001** | Unsecured Credentials: Credentials In Files | Plaintext `ews_credentials.txt` discovered on the SCADA HMI filesystem |
+| 3 | Discovery | **T1046** | Network Service Discovery | Nmap port scan on control subnet to identify Modbus-speaking hosts |
+| 3 | Execution | **T1059.004** | Command and Scripting Interpreter: Unix Shell | TTY upgrade via `python3 -c 'import pty; pty.spawn("/bin/bash")'` |
+| 4 | Impact | **T1489** | Service Stop | Modbus write halts the cooling pump process managed by the PLC |
+
+---
+
+### Kill Chain Summary
+
+```
+[Initial Access]       T0819 / T1190  — Exploit unauthenticated Node-RED HMI
+        │
+        ▼
+[Execution]            T0807 / T1059  — Command execution via exec node / reverse shell
+        │
+        ▼
+[Collection]           T0893 / T1552  — Read plaintext credential file from SCADA host
+        │
+        ▼
+[Lateral Movement]     T0859 / T1021  — SSH from HMI into EWS with stolen credentials
+        │
+        ▼
+[Discovery]            T0846 / T1046  — Subnet discovery + Modbus port scan / NSE fingerprint
+        │
+        ▼
+[Impact]               T0855 / T0831  — Unauthorized Modbus write disables cooling pump
+```
