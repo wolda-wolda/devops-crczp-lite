@@ -70,14 +70,14 @@ This document provides the complete step-by-step solutions for all training leve
 
 ## Level 4: Process Sabotage (Modbus Hijack)
 
-**Objective:** Disable the cooling pump by writing `0` to Holding Register 0 (Address 40001) on the PLC, and read the confirmation flag from `/var/log/safety_override.txt` on the EWS.
+**Objective:** Disable the cooling pump by writing `0` to Holding Register 0 on the PLC, and read the confirmation flag from `/var/log/safety_override.txt` on the EWS.
 
 **Answer:** `FLAG{PUMP_DISABLED_SUCCESS}`
 
 ### Steps:
 1.  From the EWS command environment (via the pivoted SSH shell), run the `modbus` CLI utility:
     ```bash
-    modbus write 192.168.20.10 40001 0
+    modbus 192.168.20.10 0=0
     ```
 2.  Read the safety log generated on the EWS:
     ```bash
