@@ -123,6 +123,42 @@ args:
 
 ---
 
+### Challenge 6 — Sandbox IP Range Collision with Hypervisor Management Networks
+
+**Source files:** Sandbox subnet definitions in `topology.yml`
+
+**The problem:** The parent CyberRangeCZ hypervisor reserves a very large address block (`192.168.128.0/17`) for its out-of-band management and VM DHCP network infrastructure (`man-network`). If any custom sandbox subnet overlaps with this range (e.g. attempting to define `192.168.200.0/24` as a control subnet), the VM's network interfaces prioritize the directly connected link route on the management interface (`ens3`) over routing via the default gateway (`ens4`). As a result, any packets destined for the control network are misrouted to the OOB bridge interface and dropped, leading to 100% packet loss and connection timeouts.
+
+**Resolution:** All sandbox-level subnet mappings were configured outside the hypervisor OOB range: `10.10.10.0/24` for Corporate/Attacker, `192.168.100.0/24` for Operations/SCADA, and `192.168.20.0/24` for Control/PLC subnets. This forces the guest routing tables to forward all cross-subnet packets through the default router interface `ens4` correctly.
+
+**Thesis significance:** Represents a severe infrastructure-level collision unique to virtualized security ranges. Sandbox creators must have detailed visibility into the parent hypervisor's networking tables to avoid silent IP routing conflicts, restricting IP allocation schemes to a narrower space and requiring manual route planning before provisioning.
+
+---
+
+### Challenge 7 — Dual-Homed Topology Visualizer Crash Bug
+
+**Source files:** VM interface mappings in `topology.yml`
+
+**The problem:** To simplify design, early topologies defined a dual-homed SCADA HMI VM connected to both the Operations network and the Corporate network. However, the CyberRangeCZ web interface topology graph engine crashes when parsing multi-homed VM nodes, displaying a completely blank canvas in the student web portal instead of a network map.
+
+**Resolution:** All sandbox VMs were re-architected to be strictly single-homed. All traffic passing between subnets is routed through the dedicated `ot-gateway` VM interface, with firewall rules defined in iptables to restrict communication paths.
+
+**Thesis significance:** This platform-level limitation actually acted as an accidental realism catalyst. In professional industrial networks (under IEC 62443 guidelines), dual-homing hosts between different Purdue levels is strongly discouraged as it allows attackers to bypass boundary firewalls. Enforcing single-homed nodes and routing everything through a central gateway router directly models real-world enterprise/control security architectures.
+
+---
+
+### Challenge 8 — Hypervisor Memory Starvation & OpenStack Instance ERROR States
+
+**Source files:** Terraform deployment output logs
+
+**The problem:** Sizing allocations for a single sandbox pool (including the Kali attacker, HMI, EWS, PLC, and Router VMs) require over 12GB of active memory reservation. When scaling or reallocating a new pool while an existing pool remains active, the OpenStack Nova scheduler runs out of physical host memory (OOM), placing newly spawned VMs into the `ERROR` state rather than `ACTIVE` with a generic empty error string: `unexpected state 'ERROR', wanted target 'ACTIVE' (last error: %!s(<nil>))`.
+
+**Resolution:** Single-active-pool constraints must be strictly enforced on lower-spec hypervisors (e.g. < 64GB RAM). Previous sandbox pools must be completely deleted/destroyed in the portal UI to release the hypervisor memory reservation before a new sandbox can be allocated.
+
+**Thesis significance:** Illustrates the hard physical resource boundaries of nested virtual ranges. While disk space can be mitigated via image pruning, memory reservations are non-fungible and represent the true scalability bottleneck when deploying multi-VM industrial scenarios on unified training platforms.
+
+---
+
 ## RQ 3: Hardware Resources & Real-Time Constraints
 
 *"What hardware resources are required, and what are the limitations regarding OT real-time constraints in a virtualised environment?"*
