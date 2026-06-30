@@ -153,6 +153,14 @@ During deployment scaling, we identified a critical operational resource constra
 *   **The Error Symptom:** OpenTofu/Terraform deployment outputs show newly spawned nodes entering the `ERROR` state instead of `ACTIVE` (`unexpected state 'ERROR', wanted target 'ACTIVE'`), with a generic empty error string (`last error: %!s(<nil>)`).
 *   **Operational Mitigation:** Content creators and instructors must strictly enforce single-active-pool constraints on lower-spec hypervisors (e.g., < 64GB RAM). Previous sandbox pools must be completely deleted/destroyed in the portal UI to release the hypervisor memory reservation before a new sandbox can be allocated.
 
+### E. Linear vs. Adaptive Training Pathways
+During scenario packaging, we evaluated the deployment of linear vs. adaptive training definitions:
+* **The Constraint:** Implementing adaptive training pathways (branching states, performance-based paths, and hint-penalty loops) requires complex state-machine declarations inside CyberRangeCZ, which increases development overhead and risk of deployment failures in time-constrained settings.
+* **The Strategy:** The current scenario implementation uses a robust **linear pathway** (`training.json`), ensuring consistent execution. However, the platform's native adaptive pathways represent a major feasibility extension.
+* **Pedagogical Branching Design:** 
+  1. *Remediation Path:* If a student struggles to exploit the unauthenticated Node-RED interface (Level 2) and requests multiple hint packages, the adaptive scheduler can branch them to an auxiliary container tutorial detailing child process shell command executions in Node.js.
+  2. *Advanced Path:* If a student completes the EWS pivot (Level 3) rapidly without requesting any hints, the scheduler can dynamically skip basic Modbus register writing and branch them directly to an advanced Level 4 where they must analyze and inject Siemens S7comm protocol variations, increasing the training cognitive load dynamically.
+
 ---
 
 ## 📊 6. Modbus TCP Protocol Dissection

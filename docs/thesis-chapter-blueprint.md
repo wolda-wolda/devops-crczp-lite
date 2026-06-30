@@ -289,3 +289,5 @@ This document serves as an exhaustive, page-by-page drafting guide for your BSc 
   1. **Kinetic Loop Simulation:** Detail how a state machine inside the Python daemon can calculate simulated cooling pump temperatures, adding time-pressure constraints for students.
   2. **Intrusion Detection Integration:** Propose installing Snort or Zeek on the `ot-gateway` VM to capture network PCAPs, allowing students to write and verify signature-based rule alerts for industrial protocol packets.
   3. **Protocol Diversity:** Outline how OpenPLC's native listeners for Siemens S7comm and EtherNet/IP can be utilized to expand the range into multi-protocol scenario training.
+  4. **Adaptive Training Pathways:** Propose branching pathways in CyberRangeCZ (remediation paths for struggling users, advanced challenges like DNP3 hijacking for fast users) to transition the sandbox from a fixed sequence to a dynamic learning structure.
+
