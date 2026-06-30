@@ -9,14 +9,14 @@ This document provides the complete step-by-step solutions for all training leve
 | Host | Subnet | IP | Services |
 |---|---|---|---|
 | `attacker-host` | mgmt-net | `10.10.10.50` | Kali Linux (attacker workstation) |
-| `scada-hmi` | mgmt-net / operations-net | `10.10.10.10` / `192.168.100.10` | Node-RED on port `1880` |
-| `engineering-station` | operations-net / control-net | `192.168.100.20` / `192.168.200.20` | Vulnerable API on port `5000` |
+| `scada-hmi` | operations-net | `192.168.100.10` | Node-RED on port `1880` |
+| `engineering-station` | control-net | `192.168.200.20` | Vulnerable API on port `5000` |
 | `openplc-node` | control-net | `192.168.200.10` | OpenPLC on port `8080` (Web) & `502` (Modbus) |
 | `ot-router` | mgmt-net / operations-net / control-net | `10.10.10.1` / `192.168.100.1` / `192.168.200.1` | Gateway firewall |
 
 ### Firewall Rules (configured on `ot-router`)
 
-*   Attacker (`10.10.10.50`) is blocked from reaching EWS (`192.168.100.20` / `192.168.200.20`) and PLC (`192.168.200.10`) directly.
+*   Attacker (`10.10.10.50`) is blocked from reaching EWS (`192.168.200.20`) and PLC (`192.168.200.10`) directly.
 *   SCADA HMI (`192.168.100.10`) is blocked from reaching PLC on ports `8080` (Web Admin) and `22` (SSH). It is only allowed to reach port `502` (Modbus).
 *   SCADA HMI is allowed to reach EWS on port `5000` (Management API).
 *   EWS is allowed to reach the PLC on port `8080` (Web Admin).
@@ -39,12 +39,12 @@ Read the introduction. No action required — click **Next**.
 
 ## Level 2: SCADA HMI Compromise
 
-**Objective:** Exploit the unauthenticated Node-RED flow builder on `scada-hmi` (`10.10.10.10:1880`) to read `/root/flag.txt`.
+**Objective:** Exploit the unauthenticated Node-RED flow builder on `scada-hmi` (`192.168.100.10:1880`) to read `/root/flag.txt`.
 
 **Answer:** `FLAG{SCADA_HMI_COMPROMISED}`
 
 ### Steps:
-1.  Open the Kali web browser and go to `http://10.10.10.10:1880/`.
+1.  Open the Kali web browser and go to `http://192.168.100.10:1880/`.
 2.  Drag an **`inject`** node, an **`exec`** node, and a **`debug`** node onto the canvas.
 3.  Configure the `exec` node with the command: `cat /root/flag.txt`.
 4.  Wire them together: `inject` ──► `exec` ──► `debug`.
@@ -55,7 +55,7 @@ Read the introduction. No action required — click **Next**.
 
 ## Level 3: Engineering Station Pivot
 
-**Objective:** Pivot through the HMI shell to exploit a command execution vulnerability on the Engineering Workstation (EWS) (`192.168.100.20:5000`) and read `/home/engineer/flag2.txt`.
+**Objective:** Pivot through the HMI shell to exploit a command execution vulnerability on the Engineering Workstation (EWS) (`192.168.200.20:5000`) and read `/home/engineer/flag2.txt`.
 
 **Answer:** `FLAG{EWS_PIVOT_SUCCESS}`
 
@@ -63,7 +63,7 @@ Read the introduction. No action required — click **Next**.
 1.  Add a new `exec` node to your Node-RED canvas.
 2.  Configure it with the following `curl` command to send a POST request containing a command injection payload to the EWS API:
     ```bash
-    curl -X POST -H "Content-Type: application/json" -d '{"cmd": "cat /home/engineer/flag2.txt"}' http://192.168.100.20:5000/
+    curl -X POST -H "Content-Type: application/json" -d '{"cmd": "cat /home/engineer/flag2.txt"}' http://192.168.200.20:5000/
     ```
 3.  Wire an `inject` node and a `debug` node to it, deploy, and trigger.
 4.  The output in the debug panel will show the JSON response:
