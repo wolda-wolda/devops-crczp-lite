@@ -114,6 +114,12 @@ To validate the educational fidelity of the `complex-operator-ot-sandbox`, we ma
 *   **The Vector:** The malware was dropped onto intermediate engineering nodes, which then acted as protocol gateways to send raw command packets to target controllers that lacked cryptographic authentication.
 *   **Sandbox Replication:** Mimicked in **Level 4 (Modbus Hijack)**. Rather than relying on unrealistic operating system access (like SSH keys on the PLC), the attacker remains on the EWS and runs `modbus` client commands to write `0` to PLC Holding Register 0. This alters the PLC's running state directly via protocol manipulation.
 
+#### Abstraction and Simplification for Training Fidelity
+While the sandbox environment abstracts certain complex engineering steps to remain viable within a limited training time frame, the core threat concepts and boundary conditions remain structurally equivalent:
+*   **Florida Oldsmar Hack:** Instead of complex screen-hijack utilities (TeamViewer), the sandbox abstracts remote control via an unauthenticated graphical Node-RED flow builder. The underlying vulnerability — unauthenticated graphical process control exposure — is identical.
+*   **Ukraine Power Grid Attack:** Instead of multi-month reconnaissance, directory credential harvesting, and corporate VPN hijacking, the sandbox abstracts lateral entry via operator credential leakage (`ews_credentials.txt`) stored on the SCADA server. The pivoting path through firewalls to the EWS is identical.
+*   **Industroyer & Stuxnet:** Instead of writing specialized compiled payload drivers targeting proprietary RTUs/PLCs, the sandbox abstracts industrial payload delivery using pre-installed Modbus CLI tools. The vulnerability exploited — the lack of authentication in legacy industrial control protocols (Modbus TCP port 502) — is identical.
+
 ### The Topology Visualization Bug's Accidental Realism Catalyst
 During scenario validation, we discovered that if any host VM is configured as **dual-homed** (i.e. connected to two subnets simultaneously, such as HMI bridging operations and management subnets), the CyberRangeCZ topology visualizer fails to render the network graph, displaying a completely blank canvas in the student web portal.
 
