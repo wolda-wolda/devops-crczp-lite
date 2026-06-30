@@ -95,6 +95,25 @@ To resolve this design flaw and create a highly realistic training scenario, we 
 *   **EWS Lateral Pivot (Ukraine Power Grid):** Using the stolen credentials (`operator` / `operator123`), the attacker SSHs into the Engineering Workstation (`192.168.20.20`) and scans the control network to discover the PLC IP (`192.168.20.10`).
 *   **Process Sabotage (Modbus Hijack):** From the EWS, the attacker uses the Modbus TCP client to directly write `0` to Holding Register 0 (Address 40001) on the PLC, shutting down a critical cooling pump. The EWS safety monitor captures this protocol change and writes `FLAG{PUMP_DISABLED_SUCCESS}` to `/var/log/safety_override.txt` to confirm the exploit without using any unrealistic operating system shell access on the PLC itself.
 
+### Historical Context: Real-World OT Incident Mapping
+
+To validate the educational fidelity of the `complex-operator-ot-sandbox`, we mapped its mechanics to actual historical control system breaches:
+
+#### 1. Oldsmar, Florida Water Treatment Plant Breach (2021)
+*   **What Happened:** In February 2021, an unauthorized operator remotely accessed the plant's SCADA HMI software. The intruder took control of the operator's mouse and attempted to alter the dosing levels of sodium hydroxide (lye) from 100 parts per million to a highly corrosive 11,100 ppm, targeting the safety of the water supply.
+*   **The Vector:** The breach occurred due to an exposed, outdated TeamViewer remote-access utility configured with weak shared credentials and no multi-factor authentication, bypassing basic perimeter barriers.
+*   **Sandbox Replication:** Mimicked in **Level 2 (SCADA HMI Compromise)**. The HMI (`scada-hmi`) exposes an unauthenticated Node-RED graphical flow builder on port `1880`. The attacker gains full process control simply by connecting to the exposed web portal, highlighting the vulnerability of exposed industrial control panels.
+
+#### 2. Ukraine Power Grid Cyberattack (2015)
+*   **What Happened:** In December 2015, attackers successfully disabled 30 electrical substations in Ukraine, causing a power outage for over 230,000 customers.
+*   **The Vector:** The attackers gained entry via spear-phishing on corporate networks, stole remote VPN credentials, pivoted laterally to the Operations Technology (OT) network, and accessed Engineering Workstations (EWS) to send unauthorized command sequences directly to circuit breakers.
+*   **Sandbox Replication:** Mimicked in **Level 3 (EWS Pivot)**. The attacker cannot reach the PLC directly due to firewall rules. Instead, they extract plaintext credentials left on the HMI by an operator (representing bad credential hygiene), SSH laterally into the Engineering Workstation (`engineering-station`), and scan the isolated control subnet to target the PLC.
+
+#### 3. Industroyer / Stuxnet (Protocol Injection)
+*   **What Happened:** State-sponsored malware targeted Siemens PLCs (Stuxnet, 2010) and electrical transmission protocols (Industroyer, 2016) by injecting raw industrial protocol packets (Modbus TCP, DNP3, IEC-104) directly over the local network to overwrite memory blocks and cycle hardware.
+*   **The Vector:** The malware was dropped onto intermediate engineering nodes, which then acted as protocol gateways to send raw command packets to target controllers that lacked cryptographic authentication.
+*   **Sandbox Replication:** Mimicked in **Level 4 (Modbus Hijack)**. Rather than relying on unrealistic operating system access (like SSH keys on the PLC), the attacker remains on the EWS and runs `modbus` client commands to write `0` to PLC Holding Register 0. This alters the PLC's running state directly via protocol manipulation.
+
 ### The Topology Visualization Bug's Accidental Realism Catalyst
 During scenario validation, we discovered that if any host VM is configured as **dual-homed** (i.e. connected to two subnets simultaneously, such as HMI bridging operations and management subnets), the CyberRangeCZ topology visualizer fails to render the network graph, displaying a completely blank canvas in the student web portal.
 
