@@ -56,6 +56,12 @@ pip3 install "pymodbus<3.0.0"
 ### C. Playbook Idempotency Guards
 When compiling third-party code, standard playbooks check for the presence of SQLite database files to determine if compilation is required. However, because the empty database is checked into the repository, Ansible would skip compilation, resulting in missing MatIEC compilers. We corrected the `creates` guard to check for the output execution script (`start_openplc.sh`) instead.
 
+### D. SSH Configuration and Key Management Hurdles
+We identified three operational complexities relating to the platform's native SSH configuration downloads:
+1.  **Identity File Path Mismatches:** The downloaded SSH `config` file references a key path located at `~/.ssh/` with a long unique pool identifier name. If the student does not rename their local `key` file to match this name or edit the `config` paths, SSH authentication fails.
+2.  **VM User Account Access:** The downloaded configuration specifies `User user` for connections. However, the user account `user` is only created during the optional user-stage of pool provisioning. Early administrative access or manual scenario debugging requires connecting as the base VM user (`debian` or `ubuntu`) using the range's management key.
+3.  **Dynamic IP Drift on Reallocation:** Every time a sandbox pool is re-allocated or updated, the internal router and gateway (e.g., `man`) IP addresses change. Stale config files will attempt to jump through old, inactive gateway IPs, causing SSH connections to hang indefinitely at the `Connecting to IP port 22` stage.
+
 ---
 
 ## ❌ 4. Evaluation of the "Shared SSH Key" Design Flaw
