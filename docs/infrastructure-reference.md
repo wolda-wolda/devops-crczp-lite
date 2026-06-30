@@ -356,4 +356,5 @@ sshuttle -r root@<host> 10.1.2.0/24
 - [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
 - [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
 - [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
+- [Complex OT Solutions](./complex-ot-solutions.md) — Walkthrough for the realistic EWS pivot scenario
 - [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance

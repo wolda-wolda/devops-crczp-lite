@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../simple-ot-sandbox"
+		},
+		{
+			"path": "../complex-ot-sandbox"
 		}
 	],
 	"settings": {}
