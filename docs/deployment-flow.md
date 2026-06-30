@@ -294,4 +294,5 @@ If you gracefully stopped the sandbox instances during shutdown, you need to tur
 - [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
 - [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
 - [Complex OT Solutions](./complex-ot-solutions.md) — Walkthrough for the realistic EWS pivot scenario
+- [Thesis Research Findings](./thesis-research-findings.md) — Thesis research notes, critiques, emulations limits, and PCAP analysis
 - [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance
