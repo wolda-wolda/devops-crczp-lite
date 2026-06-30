@@ -92,6 +92,14 @@ To resolve this design flaw and create a highly realistic training scenario, we 
     ```
 *   **Web-Based Flag Extraction:** Once OpenPLC compiles the program, it executes the PSM script as root, copying the flag into the public web server directory. The attacker retrieves the flag using a standard HTTP request to `http://192.168.200.10:8080/st_files/flag.txt`, completing the level without utilizing any unrealistic operating system SSH keys.
 
+### The Topology Visualization Bug's Accidental Realism Catalyst
+During scenario validation, we discovered that if any host VM is configured as **dual-homed** (i.e. connected to two subnets simultaneously, such as HMI bridging operations and management subnets), the CyberRangeCZ topology visualizer fails to render the network graph, displaying a completely blank canvas in the student web portal.
+
+While this represents a minor usability defect in the platform's visualizer library, **its impact on scenario realism is highly positive**:
+1.  **Elimination of Vulnerable Designs:** Dual-homing hosts across security levels violates industrial standards (e.g. IEC 62443) because a compromise of the dual-homed host completely bypasses zone firewalls. 
+2.  **Enforcement of Proper Routing:** To resolve the rendering bug, we single-homed all VMs and routed cross-subnet traffic strictly through the `ot-router` firewall. This configuration mirrors real-world industrial security practices, where zone firewalls inspect all SCADA-to-PLC protocol transactions.
+3.  **Overall Platform Experience:** While the bug increases development overhead for content creators (who must write complex iptables forwarding policies on the router rather than simply dual-homing hosts), it ensures that students interact with secure, realistically-architected network topologies.
+
 ---
 
 ## ⚡ 5. Sizing & Real-Time Emulation Constraints (RQ 3)
