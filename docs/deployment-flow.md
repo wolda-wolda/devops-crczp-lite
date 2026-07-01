@@ -11,7 +11,7 @@ The deployment is fully automated via `vagrant up`. It runs four sequential prov
 scripts inside a KVM virtual machine and results in a fully operational CyberRangeCZ Platform
 accessible through a browser.
 
-```
+```text
 Host → KVM VM (OpenStack) → OpenStack VM (k3s) → Kubernetes pods (CRCZP)
 ```
 
@@ -48,7 +48,7 @@ docker run -it --rm \
 
 **Script:** `scripts/01-system-setup.sh`
 
-```
+```text
 vagrant up
   └─▶ KVM boots bento/ubuntu-24.04 (202508.03.0)
         ├─ growpart /dev/vda 3
@@ -67,7 +67,7 @@ The VM is now ready for software installation.
 
 **Script:** `scripts/02-openstack-deploy.sh`
 
-```
+```text
 /root/kolla-ansible-venv  (Python venv)
   ├─ pip install ansible-core >=2.17,<2.18.99
   ├─ pip install kolla-ansible @ stable/2025.1
@@ -85,7 +85,7 @@ The VM is now ready for software installation.
   └─ init-runonce  →  creates default networks, images, flavors
 ```
 
-OpenStack is now reachable at `http://10.1.2.9` (Horizon) and `http://10.1.2.9` (API).
+OpenStack is now reachable at `<http://10.1.2.9`> (Horizon) and `<http://10.1.2.9`> (API).
 
 ---
 
@@ -93,7 +93,7 @@ OpenStack is now reachable at `http://10.1.2.9` (Horizon) and `http://10.1.2.9` 
 
 **Script:** `scripts/03-infrastructure-deploy.sh`
 
-```
+```text
 OpenStack app credential  →  OS_APPLICATION_CREDENTIAL_ID / _SECRET
 
 git clone cyberrangecz/devops-tf-deployment @ v1.4.0
@@ -110,7 +110,7 @@ git clone cyberrangecz/devops-tf-deployment @ v1.4.0
   │
   └─▶ tf-head-services  (tofu apply)
         Deploys into k3s:
-          ├─ Keycloak          →  https://<cluster_ip>/keycloak/
+          ├─ Keycloak          →  <https://<cluster_ip>/keycloak/>
           ├─ Grafana           →  (monitoring_admin_password)
           ├─ CyberRangeCZ API
           └─ CyberRangeCZ Portal web UI
@@ -122,11 +122,11 @@ git clone cyberrangecz/devops-tf-deployment @ v1.4.0
 
 **Script:** `scripts/04-final-setup.sh`
 
-```
+```text
 ├─ openstack service list   →  verify OpenStack is up
 ├─ kubectl get nodes        →  verify k3s is up
 ├─ Print deployment summary:
-│     URL:      https://<cluster_ip>/
+│     URL:      <https://<cluster_ip>/>
 │     Username: crczp-admin
 │     Password: password
 │     Grafana:  <monitoring_admin_password>
@@ -140,8 +140,8 @@ git clone cyberrangecz/devops-tf-deployment @ v1.4.0
 
 Open the printed URL in a browser:
 
-```
-https://<cluster_ip>/
+```text
+<https://<cluster_ip>/>
 ```
 
 Log in with `crczp-admin` / `password`.
@@ -156,7 +156,7 @@ sshuttle -r root@<host> 10.1.2.0/24
 
 ## Complete Flow Diagram
 
-```
+```text
 ┌─ Host (Ubuntu 24.04 / GCP n2-highmem-8) ──────────────────────────────┐
 │                                                                         │
 │  docker run vagrantlibvirt/vagrant-libvirt  →  vagrant up              │
@@ -184,7 +184,7 @@ sshuttle -r root@<host> 10.1.2.0/24
 └─────────────────────────────────────────────────────────────────────────┘
 
            ▼
-  https://<cluster_ip>/   →   CyberRangeCZ Platform  ✓
+  <https://<cluster_ip>/>   →   CyberRangeCZ Platform  ✓
 ```
 
 ---
@@ -210,33 +210,45 @@ Follow these steps to shut down and boot up the platform cleanly:
 ### 1. Graceful Shutdown Procedure
 
 #### Step A: Stop Nested OpenStack Sandbox Instances
+
 Before shutting down the parent Vagrant VM, you must gracefully power off all active training sandbox VMs running inside OpenStack.
+
 1. SSH into the Vagrant VM:
+
    ```bash
    vagrant ssh
    ```
+
 2. Elevate to root and source your OpenStack credentials:
-   ```bash
+
+```bash
    sudo -i
    source /etc/kolla/admin-openrc.sh
    ```
+
 3. Stop all running instances using the absolute path to the OpenStack client:
+
    ```bash
    for server in $(/root/kolla-ansible-venv/bin/openstack server list -f value -c ID); do
      /root/kolla-ansible-venv/bin/openstack server stop $server
    done
    ```
+
 4. Exit back to your host machine:
+
    ```bash
    exit
    exit
    ```
 
 #### Step B: Stop the Vagrant VM (from the Host)
+
 Once the nested guest VMs have stopped, trigger an ACPI graceful shutdown on the parent Vagrant VM from your host:
+
 ```bash
 vagrant halt
 ```
+
 * **Why this is safe:** Vagrant will send an ACPI shutdown signal to the Ubuntu guest. The guest OS will trigger systemd to cleanly stop `k3s.service` and `docker.service`. These services send SIGTERM to all database and control plane containers (MariaDB, PostgreSQL, RabbitMQ), giving them a grace period to flush memory transactions to disk before closing.
 
 ---
@@ -244,44 +256,61 @@ vagrant halt
 ### 2. Graceful Startup Procedure
 
 #### Step A: Boot the Vagrant VM
+
 From the host repository directory, spin up the VM:
+
 ```bash
 vagrant up
 ```
+
 * **What happens:** The VM boots. Docker and k3s services are set to start automatically.
 * Since the OpenStack containers are configured with a restart policy (`restart: unless-stopped` or `always`), Docker will automatically restart all OpenStack services.
 
 #### Step B: Verify Service Readiness
+
 Wait a few minutes for all API endpoints to initialize. You can check the service statuses inside the VM:
-1. Log in:
+
+5. Log in:
+
    ```bash
    vagrant ssh
    ```
-2. Check that the containers are running and healthy:
+
+6. Check that the containers are running and healthy:
+
    ```bash
    sudo docker ps
    ```
-3. Verify Kubernetes node status:
+
+7. Verify Kubernetes node status:
+
    ```bash
    kubectl get nodes
    ```
 
 #### Step C: Start Nested OpenStack Sandbox Instances
+
 If you gracefully stopped the sandbox instances during shutdown, you need to turn them back on:
-1. Elevate to root and source credentials:
+
+8. Elevate to root and source credentials:
+
    ```bash
    sudo -i
    source /etc/kolla/admin-openrc.sh
    ```
-2. Start all stopped instances using the absolute path to the OpenStack client:
-   ```bash
+
+9. Start all stopped instances using the absolute path to the OpenStack client:
+
+```bash
    for server in $(/root/kolla-ansible-venv/bin/openstack server list -f value -c ID); do
      /root/kolla-ansible-venv/bin/openstack server start $server
    done
    ```
-3. Exit back to your host machine:
+
+10. Exit back to your host machine:
+
    ```bash
-   exit
+exit
    exit
    ```
 
@@ -289,10 +318,10 @@ If you gracefully stopped the sandbox instances during shutdown, you need to tur
 
 ## Related Documentation
 
-- [Infrastructure Reference](./infrastructure-reference.md) — VM versions, OS images, tool versions, credentials
-- [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
-- [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
-- [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
-- [Complex OT Solutions](./complex-ot-solutions.md) — Walkthrough for the realistic EWS pivot scenario
-- [Thesis Research Findings](./thesis-research-findings.md) — Thesis research notes, critiques, emulations limits, and PCAP analysis
-- [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance
+* [Infrastructure Reference](./infrastructure-reference.md) — VM versions, OS images, tool versions, credentials
+* [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
+* [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
+* [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
+* [Complex OT Solutions](./complex-ot-solutions.md) — Walkthrough for the realistic EWS pivot scenario
+* [Thesis Research Findings](./thesis-research-findings.md) — Thesis research notes, critiques, emulations limits, and PCAP analysis
+* [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance

@@ -1,0 +1,26 @@
+# markdownlint configuration
+
+# MD013 - Line length: disabled for code blocks, tables and headings
+# (URLs in tables and long command lines cannot be wrapped without breaking semantics)
+MD013:
+  line_length: 80
+  code_blocks: false
+  tables: false
+  headings: false
+
+# MD026 - Trailing punctuation in headings: disabled
+# (Technical section names like "3.2 Memory Usage (RSS):" are intentional)
+MD026: false
+
+# MD028 - Blank line inside blockquote: disabled
+# (Multi-paragraph GitHub alert callouts use blank lines intentionally)
+MD028: false
+
+# MD029 - Ordered list item prefix: disabled
+# (Thesis screen-recording guides and research-findings use continuous sequential
+# step numbering that intentionally spans multiple subsections)
+MD029: false
+
+# MD036 - Emphasis as heading: disabled
+# (Bold intro paragraphs in technical docs are intentional, not headings)
+MD036: false

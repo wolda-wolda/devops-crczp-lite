@@ -30,11 +30,12 @@
 | HDD | 250 GB | 250 GB |
 
 By default, the `Vagrantfile` automatically and dynamically detects the host's hardware capacity:
-- **vCPU**: 
+
+- **vCPU**:
   - If `host_cpus > 8`: Allocates `host_cpus - 4` (leaving 4 cores headroom).
   - If `host_cpus > 4`: Allocates `host_cpus - 2`.
   - Else: Allocates all `host_cpus`.
-- **RAM**: 
+- **RAM**:
   - If `host_ram_mb > 16384`: Allocates `host_ram_mb - 8192` (leaving 8 GB headroom to prevent host swapping).
   - If `host_ram_mb > 8192`: Allocates `host_ram_mb - 4096` (leaving 4 GB headroom).
   - Else: Allocates all `host_ram_mb`.
@@ -133,7 +134,7 @@ Network interfaces inside the VM:
 |---|---|
 | **Deployment tool** | Kolla-Ansible |
 | **Kolla-Ansible branch** | `stable/2025.1` (OpenStack **Dalmatian** release) |
-| **Install source** | `git+https://opendev.org/openstack/kolla-ansible@stable/2025.1` |
+| **Install source** | `git+<<https://opendev.org/openstack/kolla-ansible@stable/2025.1`>> |
 | **Ansible core version** | `>=2.17, <2.18.99` |
 | **Python venv** | `/root/kolla-ansible-venv` |
 | **Install type** | `source` (built from source, not pre-built packages) |
@@ -156,7 +157,7 @@ Network interfaces inside the VM:
 | Property | Value |
 |---|---|
 | **Package** | `python-openstackclient` |
-| **Constraints file** | `https://releases.openstack.org/constraints/upper/2025.1` |
+| **Constraints file** | `<<https://releases.openstack.org/constraints/upper/2025.1`>> |
 | **Credentials file** | `/etc/kolla/admin-openrc.sh` (auto-sourced in root's `.bashrc`) |
 
 ### 6.4 Central Access Points and Endpoints
@@ -164,35 +165,39 @@ Network interfaces inside the VM:
 All services deployed in the cyberrange (both the OpenStack infrastructure layer and the Kubernetes/k3s application layer) are exposed via specific IP addresses, ports, and paths.
 
 #### 1. OpenStack Infrastructure Services (HTTP - Port 80)
+
 These are hosted on the OpenStack Virtual IP (`10.1.2.9`):
 
 | Service / Interface | URL | Port | Access Details / Credentials |
 |---|---|---|---|
-| **Horizon Dashboard** | `http://10.1.2.9` | 80 | OpenStack web administrative panel. Username: `admin` |
-| **Keystone API** | `http://10.1.2.9:5000` | 5000 | OpenStack identity service API endpoint. |
-| **Glance API** | `http://10.1.2.9:9292` | 9292 | OpenStack image service API endpoint. |
-| **Nova API** | `http://10.1.2.9:8774` | 8774 | OpenStack compute service API endpoint. |
+| **Horizon Dashboard** | `<<http://10.1.2.9`>> | 80 | OpenStack web administrative panel. Username: `admin` |
+| **Keystone API** | `<<http://10.1.2.9:5000`>> | 5000 | OpenStack identity service API endpoint. |
+| **Glance API** | `<<http://10.1.2.9:9292`>> | 9292 | OpenStack image service API endpoint. |
+| **Nova API** | `<<http://10.1.2.9:8774`>> | 8774 | OpenStack compute service API endpoint. |
 
 > [!TIP]
 > To retrieve the OpenStack `admin` password from your host, run:
+>
 > ```bash
 > vagrant ssh -c "sudo grep OS_PASSWORD /etc/kolla/admin-openrc.sh"
 > ```
 
 #### 2. CyberRange Portal & Application Services (HTTPS - Port 443)
+
 These are hosted on the Kubernetes cluster master IP (`<cluster_ip>`) and routed via the Traefik ingress controller:
 
 | Service / Interface | URL Path | Port | Username / Password Retrieval |
 |---|---|---|---|
-| **CyberRange Portal (Web UI)** | `https://<cluster_ip>/` | 443 | `crczp-admin` / `password` |
-| **Keycloak Auth Server** | `https://<cluster_ip>/keycloak/` | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw keycloak_password"` |
-| **Grafana Dashboard** | `https://<cluster_ip>/grafana` | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw monitoring_admin_password"` |
-| **Prometheus API** | `https://<cluster_ip>/prometheus/` | 443 | Requires basic authentication using `admin` credentials (same password as Grafana). |
-| **Alertmanager** | `https://<cluster_ip>/alerts/` | 443 | Requires basic authentication using `admin` credentials. |
-| **Headlamp (K8s Dashboard) Self Deployed** | `https://<cluster_ip>/headlamp` | 443 | Token authentication: `vagrant ssh -c "sudo kubectl create token my-headlamp -n kube-system"` |
+| **CyberRange Portal (Web UI)** | `<<https://<cluster_ip>/`>> | 443 | `crczp-admin` / `password` |
+| **Keycloak Auth Server** | `<<https://<cluster_ip>/keycloak/`>> | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw keycloak_password"` |
+| **Grafana Dashboard** | `<<https://<cluster_ip>/grafana`>> | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw monitoring_admin_password"` |
+| **Prometheus API** | `<<https://<cluster_ip>/prometheus/`>> | 443 | Requires basic authentication using `admin` credentials (same password as Grafana). |
+| **Alertmanager** | `<<https://<cluster_ip>/alerts/`>> | 443 | Requires basic authentication using `admin` credentials. |
+| **Headlamp (K8s Dashboard) Self Deployed** | `<<https://<cluster_ip>/headlamp`>> | 443 | Token authentication: `vagrant ssh -c "sudo kubectl create token my-headlamp -n kube-system"` |
 
 > [!NOTE]
 > The `<cluster_ip>` is the internal floating IP of the Kubernetes management node in your OpenStack deployment. You can output this IP from your host using:
+>
 > ```bash
 > vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-openstack-base output -raw cluster_ip"
 > ```
@@ -209,10 +214,10 @@ Kubernetes is deployed **inside** OpenStack via the `devops-tf-deployment` Terra
 | Property | Value |
 |---|---|
 | **Distribution** | k3s (lightweight Kubernetes) |
-| **Deployment repo** | `https://github.com/cyberrangecz/devops-tf-deployment` |
+| **Deployment repo** | `<<https://github.com/cyberrangecz/devops-tf-deployment`>> |
 | **Pinned tag** | `v1.4.0` |
 | **Terraform module** | `tf-openstack-base` |
-| **API endpoint** | `https://<cluster_ip>:6443/` |
+| **API endpoint** | `<<https://<cluster_ip>:6443/`>> |
 | **kubeconfig** | `/root/.kube/config` |
 | **CRD readiness signal** | `middlewares.traefik.io` (Traefik ingress controller) |
 
@@ -299,7 +304,7 @@ File: `ansible.cfg`
 
 ## 11. Network Topology
 
-```
+```text
 Host (bare metal / GCP)
 └── KVM / libvirt
     └── Vagrant VM  bento/ubuntu-24.04  10.1.2.10
@@ -341,6 +346,7 @@ sshuttle -r root@<host> 10.1.2.0/24
 
 > [!NOTE]
 > If you are running Vagrant inside the Docker wrapper, run the commands using the docker container:
+>
 > ```bash
 > # Example to retrieve the OpenStack Horizon admin password:
 > docker run -it --rm \

@@ -9,7 +9,7 @@ This document explains how CyberRangeCZ collects trainee command activity, what 
 CyberRangeCZ has a built-in audit pipeline that captures terminal commands typed by trainees during an active sandbox run. The captured data feeds three instructor-facing dashboards:
 
 | Tab | What It Shows |
-|-----|---------------|
+| ---- | ------------- |
 | **Command Timeline** | Chronological log of every command typed during the session |
 | **Command Analysis** | Whether captured commands match the `expected_commands` regex patterns defined in `training.json` |
 | **Assessment** | Level-by-level completion status, score, and hint usage |
@@ -18,7 +18,7 @@ CyberRangeCZ has a built-in audit pipeline that captures terminal commands typed
 
 ## How the Pipeline Works
 
-```
+```text
 Trainee types command in Guacamole terminal
         │
         ▼
@@ -60,7 +60,7 @@ To activate command tracking for a level, the following fields must be set in `t
 ### Current Configuration in Complex OT Sandbox
 
 | Level | `commands_required` | Key Expected Commands | MITRE |
-|-------|---------------------|----------------------|-------|
+| ----- | ------------------- | -------------------- | ----- |
 | 2 – SCADA Discovery | ✅ `true` | `nmap.*192.168.100.*` | T1046 |
 | 3 – HMI Compromise | ❌ `false` | *(GUI-based, N/A)* | T1190 |
 | 4 – Operator Secrets | ❌ `false` | *(GUI-based, N/A)* | T1552.001 |
@@ -74,7 +74,7 @@ To activate command tracking for a level, the following fields must be set in `t
 All five conditions must be met for the tabs to populate:
 
 | # | Condition | Notes |
-|---|-----------|-------|
+| - | --------- | ----- |
 | 1 | `training.json` has `expected_commands` + `mitre_techniques` | ✅ Already configured |
 | 2 | Training definition **re-imported** into the portal | Required after every `training.json` edit |
 | 3 | A **new** sandbox run is started | Existing runs use the old definition snapshot |
@@ -112,6 +112,7 @@ Levels where the trainee interacts with a web-based interface (e.g. the Node-RED
 The portal snapshots the training definition at import time. Editing `training.json` on disk has no effect on any run until the definition is explicitly re-uploaded through the portal UI.
 
 **Workflow:**
+
 1. Edit `training.json`
 2. Portal → Training Definitions → select definition → Upload / Update
 3. Start a new training run (old runs remain frozen on the old snapshot)
@@ -136,10 +137,10 @@ The command tracking and assessment system is intended for **instructor monitori
 
 ## Re-Import Procedure (Quick Reference)
 
-1. In your browser, log in to the portal as `crczp-admin`.
-2. Navigate to **Training Definitions** in the left sidebar.
-3. Find the **Complex OT Sandbox** definition.
-4. Click **Edit** → **Upload** and select `/opt/cyber-range/complex-ot-sandbox/training.json`.
-5. Save/publish the new version.
-6. Go to **Training Runs** and start a **new run** from the updated definition.
-7. Share the access token/link with the trainee account.
+4. In your browser, log in to the portal as `crczp-admin`.
+5. Navigate to **Training Definitions** in the left sidebar.
+6. Find the **Complex OT Sandbox** definition.
+7. Click **Edit** → **Upload** and select `/opt/cyber-range/complex-ot-sandbox/training.json`.
+8. Save/publish the new version.
+9. Go to **Training Runs** and start a **new run** from the updated definition.
+10. Share the access token/link with the trainee account.
