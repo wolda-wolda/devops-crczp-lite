@@ -159,6 +159,20 @@ args:
 
 ---
 
+### Challenge 9 — Git Definition Caching & Missing "Update" Interface
+
+**Source files:** CyberRangeCZ Portal GUI / Git repository imports
+
+**The problem:** When iterating and debugging sandbox topologies or training files (e.g., `topology.yml` or `training.json`), developers commit changes to their Git repository. However, the CyberRangeCZ web portal lacks an "Update" or "Pull" button to refresh an existing imported definition from the remote repository. Furthermore, when deleting an old definition and creating a new one pointing to the same Git repository and branch, the backend portal cache often retains a copy of the old commits rather than pulling the latest code from the remote server, causing developers to deploy outdated configurations.
+
+**Resolution:** To force a cache bypass and pull the latest code during sandbox development:
+1.  **Unique Revision Tags:** Use a unique commit hash (e.g. `5ab3c89`) or a unique branch name/tag instead of the generic `main` branch label in the definition form. This forces the portal's backend git downloader to treat it as a distinct revision and fetch it fresh from the remote repository.
+2.  **Portal Service Restart (Root Clean):** For local self-deployed instances, clearing the portal containers' volume caches or restarting the backend server components forces a cache invalidation.
+
+**Thesis significance:** Highlights the lifecycle iteration bottlenecks of modern cyber ranges. While Infrastructure as Code (IaC) allows fast scripting changes, platform caching architectures designed for student isolation can actively impede the developer iteration cycle during scenario engineering.
+
+---
+
 ## RQ 3: Hardware Resources & Real-Time Constraints
 
 *"What hardware resources are required, and what are the limitations regarding OT real-time constraints in a virtualised environment?"*

