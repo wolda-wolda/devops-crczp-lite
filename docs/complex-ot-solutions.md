@@ -4,7 +4,56 @@ This document provides the complete step-by-step solutions for all training leve
 
 ---
 
-## Network Layout
+## 📖 1. Scenario Architecture & Components
+
+To understand this exploit and sabotage scenario, you must first understand the core components of an Operational Technology (OT) and Industrial Control System (ICS) environment modeled in the sandbox:
+
+### A. Programmable Logic Controller (PLC)
+*   **Definition:** A ruggedized, specialized industrial computer designed to monitor inputs (from sensors like thermometers or flow meters) and control outputs (like turning on pumps, opening valves, or running motors) based on a programmed loop logic. 
+*   **Sandbox Role (`openplc-node`):** Runs OpenPLC (an open-source software PLC). It controls a simulated cooling loop pump by listening on **Modbus TCP port 502** and managing Holding Register 0 (PLC register 40001). Setting this register to `1` enables the pump; setting it to `0` disables it.
+
+### B. Engineering Workstation (EWS)
+*   **Definition:** A high-privileged computer system used by control system engineers and technicians to write programs, modify PLC control logic, configure field devices, and monitor the health of the industrial network. It holds direct network and protocol access to the PLCs.
+*   **Sandbox Role (`engineering-station`):** Represents the EWS. Under secure industrial network rules, it is the **only host** authorized to send Modbus command traffic directly to the PLC. This makes the EWS a high-value target for lateral movement.
+
+### C. SCADA HMI (Implemented via Node-RED)
+*   **SCADA HMI Definition:** A graphical interface and supervisory control system that gathers real-time telemetry from PLCs and field equipment, displaying it to operators on a screen. It allows operators to view process states and issue manual adjustments or overrides (e.g., starting a motor).
+*   **Node-RED (The Underlying Tool):** Node-RED is a flow-based visual programming tool commonly used in industrial IoT and SCADA environments to bind controllers, dashboards, databases, and APIs together.
+*   **Sandbox Integration (`scada-hmi`):** In this scenario, **Node-RED is the specific software engine running on the `scada-hmi` host VM**. It acts as the visual HMI panel. Leaving its administrative editor unauthenticated represents a critical initial entry vulnerability (Remote Code Execution) that the attacker exploits to gain a foothold.
+
+---
+
+## 🌐 2. Real-World Realism & Network Segmentation (Industrial Fidelity)
+
+This scenario is designed to replicate high-profile state-sponsored cyber-physical attacks (such as the **2015 Ukraine Power Grid attack** and the **2021 Oldsmar, Florida Water Plant breach**) rather than generic IT capture-the-flag exercises. It mirrors real-world networks in four key ways:
+
+### A. Strict Purdue Model Segmentation
+The network layout enforces strict division based on the **Purdue Model (incorporated into the ISA/IEC 62443 standard for network zone segmentation)** using a central router (`ot-gateway`):
+*   **Isolation of the Control Network:** The attacker (on Corporate Level 4/5) has **no direct path** to the EWS (Level 2) or the PLC (Level 1). They cannot ping, port-scan, or exploit the PLC directly.
+*   **Authorized Path Flow:** The gateway router firewall only permits traffic to pass along authorized channels:
+    *   Attacker (Corporate) can only access the SCADA HMI (Operations Level 3) on port 1880.
+    *   SCADA HMI (Operations Level 3) can SSH (port 22) into the EWS (Level 2).
+    *   EWS (Level 2) is the only node allowed to send Modbus TCP packets (port 502) to the PLC (Level 1).
+*   This segmenting mirrors real-world production networks where critical field equipment is segregated behind firewalls.
+
+### B. Exploitation via Credential Hygiene Failures
+Rather than using exotic zero-day exploits, the attacker pivots through the network boundaries by exploiting common human errors and credential hygiene failures:
+*   The attacker compromises the unauthenticated Node-RED portal to gain initial shell access.
+*   Instead of hacking the SSH service of the EWS, the attacker harvests a plaintext operator backup file (`ews_credentials.txt`) left in the home directory of the SCADA host. This mirrors the Ukraine 2015 breach, where attackers harvested legitimate remote-access credentials to pivot laterally.
+
+### C. Pentesting & Pivot Mechanics (PTY Upgrade)
+Once the attacker gains shell access on the SCADA HMI, they cannot simply run SSH to connect to the EWS. 
+*   **The Issue:** A raw reverse shell is a "dumb" connection that does not handle interactive elements (like the SSH password prompt). 
+*   **The Realism:** The attacker must upgrade their connection to an interactive Pseudo-Terminal (PTY) using Python's pty library (`python3 -c 'import pty; pty.spawn("/bin/bash")'`). This upgrade mimics the exact procedure used by penetration testers and APT actors to handle interactive utilities.
+
+### D. Cleartext Industrial Protocols (Modbus Insecurity)
+Once the attacker reaches the high-privilege EWS, they do not hack the PLC operating system. 
+*   **The Protocol Vulnerability:** Legacy industrial protocols (such as Modbus TCP on port 502) were designed for isolation and contain **no cryptographic authentication, encryption, or integrity checks**.
+*   **The Exploit:** By sending a raw, unauthenticated Modbus write command (`modbus 192.168.20.10 0=0`) directly over the network, the attacker forces the PLC to alter its memory state and shut down the physical cooling pump. This replicates the protocol injection mechanics used in malware like **Industroyer/Crashoverride** and **Stuxnet**.
+
+---
+
+## 3. Network Layout
 
 | Host | Subnet | IP | Services |
 |---|---|---|---|

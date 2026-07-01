@@ -13,7 +13,7 @@ This document serves as an exhaustive, page-by-page drafting guide for your BSc 
 ### Page 1: Purdue Model Mapping & Network Segmentation
 * **Objective:** Introduce the logical design of the OT scenarios and how they align with standard industrial security practices.
 * **Key Concepts to Define:** 
-  * The **Purdue Model for Industrial Control Systems (ICS)** (ISA-99/IEC 62443).
+  * The **Purdue Model for Industrial Control Systems (ICS)** (its relation to and formalization within ISA-99 / IEC 62443 zones and conduits).
   * Subnet isolation and demarcation points.
   * Zones (Corporate, Operations, Control) and conduits (routers/firewalls).
 * **Specific Data References:** 

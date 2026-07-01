@@ -115,15 +115,61 @@ Once the training run is active, you can interact with the virtual machines:
 
 ---
 
-## Step 6: Clean Up / Deleting the Sandbox Pool
+## Step 6: Sandbox Reusability & Pool Recycling (The "Dirty Sandbox" Constraint)
 
-To free up CPU and RAM on your server when you are done:
+When provisioning sandboxes for training runs, keep in mind the following platform allocation and state persistence limitations:
 
-1. Go to **Trainings** > **Instances** and delete any active training instances first.
-2. Go to **Sandboxes** > **Pools**.
-3. Select your pool and click **Delete**.
-4. Confirm the deletion.
-   * **What happens:** KYPO automatically runs Terraform destroy tasks in OpenStack to delete all VMs, floating IPs, and subnets. Your host resources will be immediately freed up.
+### 1. The "One-Trainee-Per-Sandbox" Limitation
+* **Single Assignment:** A sandbox instance can only be allocated to **one active training run / participant** at a time.
+* **Pool Exhaustion:** If your pool size is `1` and a trainee starts their run, the pool is fully claimed. No other students can start their training runs until more sandboxes are allocated or the pool is resized.
+
+### 2. The "Dirty Sandbox" State Drift
+* **State Persistence:** Once a trainee interacts with the sandbox (e.g. installs files, upgrades shells, edits Node-RED flows, writes to PLC registers), these changes are saved persistently to the VM disk volumes. 
+* **Lack of Auto-Reset:** The platform does **not** roll back the guest VM disk states between runs. Reassigning the same sandbox to a new trainee will inherit the "dirty" state (pre-completed tasks, pre-configured exploits, already-harvested flags), rendering the exercise useless for the next run.
+
+### 3. How to Clean Up and Reset the Sandbox
+To recycle a pool and restore the sandbox to a completely clean state for the next run, you must destroy and recreate the instances:
+
+1.  **Delete Active Training Instances:** 
+   Navigate to **Trainings** > **Instances**, select the active instance, and delete it.
+2.  **Re-allocate/Rebuild the Pool:**
+   Navigate to **Sandboxes** > **Pools**, select your pool, and click **Delete** (or **Force Delete**). This executes Terraform destroy scripts to remove all dirty VMs and subnets inside OpenStack and immediately frees up host CPU/RAM resources.
+3.  **Trigger Re-allocation:**
+   Once deleted, click **Allocate** on the pool. This deploys a fresh set of VMs and executes the Ansible playbooks, guaranteeing a clean starting state.
+
+---
+
+## Sandbox Pool Resource Calculations & Hardware Constraints
+
+Deploying the **Complex OT Sandbox** (`complex-operator-ot-sandbox`) reserves substantial CPU, RAM, and Disk resources from the OpenStack hypervisor.
+
+### 1. Resource Allocations Per Sandbox Instance
+
+Each sandbox in the pool spawns **5 virtual machines** with the following hardware profiles (defined by OpenStack flavors):
+
+| Host / Role | Flavor | VCPUs | RAM (MB) | Disk (GB) |
+|---|---|---|---|---|
+| **attacker-host** (Kali Linux) | `kali` | 4 | 4,196 | 60 |
+| **scada-hmi** (Node-RED HMI) | `standard.small` | 1 | 2,048 | 10 |
+| **engineering-station** (EWS) | `standard.small` | 1 | 2,048 | 10 |
+| **openplc-node** (OpenPLC PLC) | `standard.small` | 1 | 2,048 | 10 |
+| **ot-gateway** (Gateway Router) | `standard.small` | 1 | 2,048 | 10 |
+| **Total (per sandbox)** | | **8** | **12,388 (~12.1 GB)** | **100 GB** |
+
+### 2. Resource Requirements for Additional Sandboxes
+Because each sandbox in the pool is a completely isolated environment, every additional sandbox you allocate duplicates these requirements:
+
+$$\text{Total Pool Reservation} = \text{Pool Size} \times \text{Single Sandbox Resources}$$
+
+For example:
+*   **Pool Size = 1 (Current Default):** Requires **8 VCPUs**, **~12.1 GB RAM**, and **100 GB Disk**.
+*   **Pool Size = 2 (One additional sandbox):** Requires **16 VCPUs**, **~24.2 GB RAM**, and **200 GB Disk**.
+*   **Pool Size = 5 (Small classroom):** Requires **40 VCPUs**, **~60.5 GB RAM**, and **500 GB Disk**.
+
+> [!WARNING]
+> **OpenStack Instance ERROR State:** If your hypervisor host runs out of physical RAM, the OpenStack Nova scheduler will experience memory starvation. When allocating or scaling up a pool, newly spawned instances will fail to boot and enter the `ERROR` state with a generic `unexpected state 'ERROR', wanted target 'ACTIVE'` message.
+> 
+> Always delete any old sandbox pools inside the portal before attempting to allocate a new pool on constrained hardware (< 64 GB RAM).
 
 ---
 

@@ -313,6 +313,14 @@ While powerful, implementing a hybrid cyber range introduces several system-leve
 *   **The Impact:** Unlike virtual machines that can be rebooted or reset to snapshot, physical hardware can be permanently damaged by malicious control sequences (e.g. cycling a circuit breaker thousands of times, or running a motor past mechanical limits).
 *   **Remediation:** Physical hardware setups must incorporate hard-wired safety interlocks (like limit switches and physical emergency stops) and software sanity bounds in the PLC program that override malicious write inputs to prevent equipment damage or operator injury.
 
+#### E. Trainee Contention & The "Hardware Lock" Bottleneck
+*   **The Constraint:** While virtual sandboxes can be cloned infinitely in the cloud, physical hardware devices (like PLCs, RTUs, or actuators) are single physical assets with a single IP address and set of register memory states.
+*   **The Impact:** If multiple trainees run the hybrid scenario concurrently, they will all target and write commands to the **same physical PLC**. This triggers network packet collisions and race conditions (e.g., Trainee A writing `0` to halt the process while Trainee B concurrently writes `1` to run it). Trainees will override each other's exploits, corrupting the training flow and breaking automated grading assessments.
+*   **Remediation:** To scale a hybrid range for multiple trainees, administrators must adopt one of the following strategies:
+    *   *Dedicated Multi-PLC Racks:* Allocate multiple physical PLCs on the rack, mapping each physical device to a unique sandbox VLAN ID inside the cloud network interface.
+    *   *Time-Slicing/Scheduling:* Restrict the hybrid sandbox pool to one active trainee at a time.
+    *   *Hybrid Fallback:* Deploy the purely virtual/emulated PLC (e.g. OpenPLC) sandbox for general group training, and reserve the hybrid hardware connection for individual examinations or research.
+
 ---
 
 ## 📊 6. Modbus TCP Protocol Dissection
