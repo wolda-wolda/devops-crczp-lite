@@ -7,15 +7,18 @@
 
 ## Overview
 
-The deployment is fully automated via `vagrant up`. It runs four sequential provisioning
-scripts inside a KVM virtual machine and results in a fully operational CyberRangeCZ Platform
+The deployment is fully automated via `vagrant up`. It runs four sequential
+provisioning
+scripts inside a KVM virtual machine and results in a fully operational
+CyberRangeCZ Platform
 accessible through a browser.
 
 ```text
 Host → KVM VM (OpenStack) → OpenStack VM (k3s) → Kubernetes pods (CRCZP)
 ```
 
-Three layers of virtualisation are involved. Nested virtualisation (`libvirt.nested = true`)
+Three layers of virtualisation are involved. Nested virtualisation
+(`libvirt.nested = true`)
 is mandatory on the host.
 
 ---
@@ -85,7 +88,8 @@ The VM is now ready for software installation.
   └─ init-runonce  →  creates default networks, images, flavors
 ```
 
-OpenStack is now reachable at `<http://10.1.2.9`> (Horizon) and `<http://10.1.2.9`> (API).
+OpenStack is now reachable at `<http://10.1.2.9`> (Horizon) and
+`<http://10.1.2.9`> (API).
 
 ---
 
@@ -203,7 +207,10 @@ sshuttle -r root@<host> 10.1.2.0/24
 
 ## Graceful Shutdown & Startup Procedures
 
-Because the cyberrange runs virtual machines nested inside OpenStack, and runs multiple database services (PostgreSQL for Keycloak/Guacamole, MariaDB for OpenStack, etc.) inside Docker and Kubernetes, **improper shutdowns can lead to database corruption or broken VM disk states.**
+Because the cyberrange runs virtual machines nested inside OpenStack, and runs
+multiple database services (PostgreSQL for Keycloak/Guacamole, MariaDB for
+OpenStack, etc.) inside Docker and Kubernetes, **improper shutdowns can lead to
+database corruption or broken VM disk states.**
 
 Follow these steps to shut down and boot up the platform cleanly:
 
@@ -211,7 +218,8 @@ Follow these steps to shut down and boot up the platform cleanly:
 
 #### Step A: Stop Nested OpenStack Sandbox Instances
 
-Before shutting down the parent Vagrant VM, you must gracefully power off all active training sandbox VMs running inside OpenStack.
+Before shutting down the parent Vagrant VM, you must gracefully power off all
+active training sandbox VMs running inside OpenStack.
 
 1. SSH into the Vagrant VM:
 
@@ -243,13 +251,18 @@ Before shutting down the parent Vagrant VM, you must gracefully power off all ac
 
 #### Step B: Stop the Vagrant VM (from the Host)
 
-Once the nested guest VMs have stopped, trigger an ACPI graceful shutdown on the parent Vagrant VM from your host:
+Once the nested guest VMs have stopped, trigger an ACPI graceful shutdown on the
+parent Vagrant VM from your host:
 
 ```bash
 vagrant halt
 ```
 
-* **Why this is safe:** Vagrant will send an ACPI shutdown signal to the Ubuntu guest. The guest OS will trigger systemd to cleanly stop `k3s.service` and `docker.service`. These services send SIGTERM to all database and control plane containers (MariaDB, PostgreSQL, RabbitMQ), giving them a grace period to flush memory transactions to disk before closing.
+* **Why this is safe:** Vagrant will send an ACPI shutdown signal to the Ubuntu
+  guest. The guest OS will trigger systemd to cleanly stop `k3s.service` and
+  `docker.service`. These services send SIGTERM to all database and control
+  plane containers (MariaDB, PostgreSQL, RabbitMQ), giving them a grace period
+  to flush memory transactions to disk before closing.
 
 ---
 
@@ -263,12 +276,16 @@ From the host repository directory, spin up the VM:
 vagrant up
 ```
 
-* **What happens:** The VM boots. Docker and k3s services are set to start automatically.
-* Since the OpenStack containers are configured with a restart policy (`restart: unless-stopped` or `always`), Docker will automatically restart all OpenStack services.
+* **What happens:** The VM boots. Docker and k3s services are set to start
+  automatically.
+* Since the OpenStack containers are configured with a restart policy (`restart:
+  unless-stopped` or `always`), Docker will automatically restart all OpenStack
+  services.
 
 #### Step B: Verify Service Readiness
 
-Wait a few minutes for all API endpoints to initialize. You can check the service statuses inside the VM:
+Wait a few minutes for all API endpoints to initialize. You can check the
+service statuses inside the VM:
 
 5. Log in:
 
@@ -290,7 +307,8 @@ Wait a few minutes for all API endpoints to initialize. You can check the servic
 
 #### Step C: Start Nested OpenStack Sandbox Instances
 
-If you gracefully stopped the sandbox instances during shutdown, you need to turn them back on:
+If you gracefully stopped the sandbox instances during shutdown, you need to
+turn them back on:
 
 8. Elevate to root and source credentials:
 
@@ -318,10 +336,17 @@ exit
 
 ## Related Documentation
 
-* [Infrastructure Reference](./infrastructure-reference.md) — VM versions, OS images, tool versions, credentials
-* [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
-* [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
-* [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
-* [Complex OT Solutions](./complex-ot-solutions.md) — Walkthrough for the realistic EWS pivot scenario
-* [Thesis Research Findings](./thesis-research-findings.md) — Thesis research notes, critiques, emulations limits, and PCAP analysis
-* [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance
+* [Infrastructure Reference](./infrastructure-reference.md) — VM versions, OS
+  images, tool versions, credentials
+* [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for
+  deploying Node-RED HMI and OpenPLC
+* [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide
+  on importing and allocating sandboxes in the Portal UI
+* [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution
+  walkthrough
+* [Complex OT Solutions](./complex-ot-solutions.md) — Walkthrough for the
+  realistic EWS pivot scenario
+* [Thesis Research Findings](./thesis-research-findings.md) — Thesis research
+  notes, critiques, emulations limits, and PCAP analysis
+* [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing
+  and uploading OS images to OpenStack Glance

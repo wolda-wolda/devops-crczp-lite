@@ -1,10 +1,16 @@
 # How to Deploy a Simple OT Sandbox in CyberRangeCZ / KYPO
 
-The CyberRangeCZ platform (built on the open-source **KYPO Cyber Range Platform**) uses a declarative, Git-ops-based workflow to provision virtual environments (sandboxes).
+The CyberRangeCZ platform (built on the open-source **KYPO Cyber Range
+Platform**) uses a declarative, Git-ops-based workflow to provision virtual
+environments (sandboxes).
 
-For details on how to build and register the base OS images used in these sandboxes, see the [Base Boxes & Image Management Guide](./base-boxes-management.md).
+For details on how to build and register the base OS images used in these
+sandboxes, see the [Base Boxes & Image Management
+Guide](./base-boxes-management.md).
 
-To deploy the OT exploit-and-sabotage training scenario (attacker machine, SCADA HMI, software PLC, and a gateway router with firewall policies), follow this guide.
+To deploy the OT exploit-and-sabotage training scenario (attacker machine, SCADA
+HMI, software PLC, and a gateway router with firewall policies), follow this
+guide.
 
 ---
 
@@ -12,9 +18,12 @@ To deploy the OT exploit-and-sabotage training scenario (attacker machine, SCADA
 
 A sandbox definition is a standalone Git repository containing three main items:
 
-1. **`topology.yml`**: Outlines the networks, routers, virtual machines (hosts), and their connection interfaces.
-2. **`provisioning/`**: Contains Ansible roles and a playbook that configures software inside the VMs once they boot.
-3. **`training.json`** *(optional)*: Defines the interactive training levels, flags, hints, and scoring.
+1. **`topology.yml`**: Outlines the networks, routers, virtual machines (hosts),
+   and their connection interfaces.
+2. **`provisioning/`**: Contains Ansible roles and a playbook that configures
+   software inside the VMs once they boot.
+3. **`training.json`** *(optional)*: Defines the interactive training levels,
+   flags, hints, and scoring.
 
 Your repository directory structure should look like this:
 
@@ -42,8 +51,10 @@ simple-ot-sandbox/
 
 The topology defines three host VMs, one router, and two networks:
 
-* `mgmt-net` (`10.10.10.0/24`): Connects the attacker to the SCADA HMI and the router.
-* `ot-net` (`192.168.99.0/24`): Connects the router to the PLC (isolated from the attacker).
+* `mgmt-net` (`10.10.10.0/24`): Connects the attacker to the SCADA HMI and the
+  router.
+* `ot-net` (`192.168.99.0/24`): Connects the router to the PLC (isolated from
+  the attacker).
 
 ```yaml
 name: simple-ot-sandbox
@@ -128,7 +139,8 @@ groups: []
 ```
 
 > [!NOTE]
-> All hosts use `debian-12-x86_64` except the attacker, which uses the `kali` image. Both are pre-registered in OpenStack Glance by the platform deployment.
+> All hosts use `debian-12-x86_64` except the attacker, which uses the `kali`
+image. Both are pre-registered in OpenStack Glance by the platform deployment.
 
 ---
 
@@ -166,7 +178,8 @@ The playbook maps configuration roles to the VMs defined in the topology:
 
 ### Router Role (`roles/router/tasks/main.yml`)
 
-Blocks the attacker host from directly accessing the PLC on Modbus and admin ports:
+Blocks the attacker host from directly accessing the PLC on Modbus and admin
+ports:
 
 ```yaml
 ---
@@ -196,7 +209,8 @@ Blocks the attacker host from directly accessing the PLC on Modbus and admin por
 
 ### Node-RED Role (`roles/nodered/tasks/main.yml`)
 
-Installs Node-RED v3.1.15 (compatible with Node.js 18 on Debian 12), configures it to listen on all interfaces, and deploys the SCADA flag:
+Installs Node-RED v3.1.15 (compatible with Node.js 18 on Debian 12), configures
+it to listen on all interfaces, and deploys the SCADA flag:
 
 ```yaml
 ---
@@ -282,11 +296,15 @@ Installs Node-RED v3.1.15 (compatible with Node.js 18 on Debian 12), configures 
 ```
 
 > [!WARNING]
-> Node-RED must be pinned to version `3.1.15`. The latest Node-RED (v4+) requires Node.js v22+, which is not available in Debian 12's default repositories. Additionally, `uiHost` must be set to `"0.0.0.0"` before the first service start, or Node-RED will only bind to `127.0.0.1`.
+> Node-RED must be pinned to version `3.1.15`. The latest Node-RED (v4+)
+requires Node.js v22+, which is not available in Debian 12's default
+repositories. Additionally, `uiHost` must be set to `"0.0.0.0"` before the first
+service start, or Node-RED will only bind to `127.0.0.1`.
 
 ### OpenPLC Role (`roles/openplc/tasks/main.yml`)
 
-Installs OpenPLC v3, configures auto-start run mode, and deploys a simulation monitor daemon that triggers the sabotage flag:
+Installs OpenPLC v3, configures auto-start run mode, and deploys a simulation
+monitor daemon that triggers the sabotage flag:
 
 ```yaml
 ---
@@ -356,7 +374,12 @@ Installs OpenPLC v3, configures auto-start run mode, and deploys a simulation mo
 ```
 
 > [!IMPORTANT]
-> The `creates` guard must check for `start_openplc.sh` (not `openplc.db`), because the database file exists in the Git repository but is not sufficient evidence that the full compilation completed. The `ExecStart` must point to `start_openplc.sh`, which activates the Python virtual environment before launching the webserver. Setting `Start_run_mode` to `true` ensures the Modbus server (port 502) starts automatically on boot.
+> The `creates` guard must check for `start_openplc.sh` (not `openplc.db`),
+because the database file exists in the Git repository but is not sufficient
+evidence that the full compilation completed. The `ExecStart` must point to
+`start_openplc.sh`, which activates the Python virtual environment before
+launching the webserver. Setting `Start_run_mode` to `true` ensures the Modbus
+server (port 502) starts automatically on boot.
 
 ---
 
@@ -372,7 +395,8 @@ KYPO fetches sandbox definitions directly from Git repositories.
    git commit -m "feat: initial OT sandbox definition"
    ```
 
-5. Push it to a repository service (e.g., GitHub) that your CyberRangeCZ portal can access:
+5. Push it to a repository service (e.g., GitHub) that your CyberRangeCZ portal
+   can access:
 
 ```bash
    git remote add origin <your-git-repo-url>
@@ -383,13 +407,15 @@ KYPO fetches sandbox definitions directly from Git repositories.
 
 ## 5. Import the Sandbox Definition into CyberRangeCZ
 
-6. Log in to the **CyberRangeCZ / KYPO Portal Web UI** (default: `<https://<cluster_ip>/`,> credentials: `crczp-admin` / `password`).
+6. Log in to the **CyberRangeCZ / KYPO Portal Web UI** (default:
+   `<https://<cluster_ip>/`,> credentials: `crczp-admin` / `password`).
 7. From the sidebar menu, navigate to **Sandboxes** > **Definitions**.
 8. Click the **Create** button.
 9. Enter the details:
    * **Git URL:** `<https://github.com/<org>/simple-ot-sandbox.git`>
    * **Revision:** `main`
-10. Click **Save**. The portal will parse the `topology.yml` and display a visual graph of your sandbox networks.
+10. Click **Save**. The portal will parse the `topology.yml` and display a
+    visual graph of your sandbox networks.
 
 ---
 
@@ -400,7 +426,8 @@ If your repository contains a `training.json` file:
 11. Navigate to **Trainings** > **Definitions**.
 12. Click the **Create** button.
 13. Enter the same Git URL and revision as the sandbox definition.
-14. Click **Save**. The portal will parse `training.json` and load the interactive training levels.
+14. Click **Save**. The portal will parse `training.json` and load the
+    interactive training levels.
 
 ---
 
@@ -410,31 +437,43 @@ To deploy the VMs inside OpenStack:
 
 15. Navigate to **Sandboxes** > **Pools**.
 16. Click **Create Pool**.
-17. Provide a name (e.g., `OT-Exploit-Lab-Pool`) and select the imported sandbox definition.
+17. Provide a name (e.g., `OT-Exploit-Lab-Pool`) and select the imported sandbox
+    definition.
 18. Set the **Size** (e.g., `1` for self-testing).
 19. Click **Create & Allocate**.
 
 ### What happens behind the scenes:
 
-20. **Terraform Orchestrator:** KYPO generates and runs Terraform manifests to build the networks, router, security groups, and spawn the 4 VMs (attacker, SCADA HMI, PLC, router).
-21. **Ansible Provisioning:** Once the VMs boot, KYPO runs `provisioning/playbook.yml` to configure the firewall, Node-RED, OpenPLC, and the simulation monitor daemon.
+20. **Terraform Orchestrator:** KYPO generates and runs Terraform manifests to
+    build the networks, router, security groups, and spawn the 4 VMs (attacker,
+    SCADA HMI, PLC, router).
+21. **Ansible Provisioning:** Once the VMs boot, KYPO runs
+    `provisioning/playbook.yml` to configure the firewall, Node-RED, OpenPLC,
+    and the simulation monitor daemon.
 
 ---
 
 ## 8. Accessing the OT Environment
 
-22. Once the pool status changes to **Active**, go to **Pools** > select pool > **Sandboxes**.
+22. Once the pool status changes to **Active**, go to **Pools** > select pool >
+    **Sandboxes**.
 23. Select an allocated sandbox.
 24. Access the VM consoles via the integrated web-based Guacamole client:
-   * **attacker-host** — Kali desktop for running reconnaissance and exploits
-   * **scada-hmi** — Node-RED flow editor at `<http://10.10.10.10:1880/`>
-   * **openplc-node** — OpenPLC admin panel at `<http://192.168.99.10:8080/`> (credentials: `openplc` / `openplc`)
+
+* **attacker-host** — Kali desktop for running reconnaissance and exploits
+* **scada-hmi** — Node-RED flow editor at `<http://10.10.10.10:1880/`>
+* **openplc-node** — OpenPLC admin panel at `<http://192.168.99.10:8080/`>
+     (credentials: `openplc` / `openplc`)
 
 ---
 
 ## Related Documentation
 
-* [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step portal UI walkthrough
-* [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough
-* [Troubleshooting Commands](./troubleshooting-commands.md) — CLI reference for debugging
-* [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images
+* [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step
+  portal UI walkthrough
+* [OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution
+  walkthrough
+* [Troubleshooting Commands](./troubleshooting-commands.md) — CLI reference for
+  debugging
+* [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing
+  and uploading OS images

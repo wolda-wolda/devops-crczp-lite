@@ -16,7 +16,8 @@
 | **Disk size** | 250 GB (expanded on boot via `growpart` + `lvextend`) |
 | **Volume group** | `ubuntu-vg / ubuntu-lv` (LVM, grows to fill virtual disk) |
 
-> The disk image starts smaller; `scripts/01-system-setup.sh` automatically resizes the
+> The disk image starts smaller; `scripts/01-system-setup.sh` automatically
+resizes the
 > partition and filesystem on first boot.
 
 ---
@@ -29,20 +30,25 @@
 | RAM | 48 GB | 48 GB |
 | HDD | 250 GB | 250 GB |
 
-By default, the `Vagrantfile` automatically and dynamically detects the host's hardware capacity:
+By default, the `Vagrantfile` automatically and dynamically detects the host's
+hardware capacity:
 
 - **vCPU**:
   - If `host_cpus > 8`: Allocates `host_cpus - 4` (leaving 4 cores headroom).
   - If `host_cpus > 4`: Allocates `host_cpus - 2`.
   - Else: Allocates all `host_cpus`.
 - **RAM**:
-  - If `host_ram_mb > 16384`: Allocates `host_ram_mb - 8192` (leaving 8 GB headroom to prevent host swapping).
-  - If `host_ram_mb > 8192`: Allocates `host_ram_mb - 4096` (leaving 4 GB headroom).
+  - If `host_ram_mb > 16384`: Allocates `host_ram_mb - 8192` (leaving 8 GB
+    headroom to prevent host swapping).
+  - If `host_ram_mb > 8192`: Allocates `host_ram_mb - 4096` (leaving 4 GB
+    headroom).
   - Else: Allocates all `host_ram_mb`.
 
-For example, on a 32-core, 64 GB RAM server, Vagrant automatically provisions **28 vCPUs** and **~52 GB (52,248 MB) RAM** to the VM.
+For example, on a 32-core, 64 GB RAM server, Vagrant automatically provisions
+**28 vCPUs** and **~52 GB (52,248 MB) RAM** to the VM.
 
-You can still manually override these dynamic defaults using environment variables:
+You can still manually override these dynamic defaults using environment
+variables:
 
 ```bash
 CPU=8 RAM=45056 vagrant up
@@ -50,7 +56,8 @@ CPU=8 RAM=45056 vagrant up
 
 ### 2.1 Performance Tuning and Hypervisor Settings
 
-To speed up deployment time, several hypervisor-level performance options are enabled by default in the `Vagrantfile`'s Libvirt block:
+To speed up deployment time, several hypervisor-level performance options are
+enabled by default in the `Vagrantfile`'s Libvirt block:
 
 | Setting | Value | Rationale / Performance Gain | Upsides | Downsides / Risks |
 |---|---|---|---|---|
@@ -162,7 +169,9 @@ Network interfaces inside the VM:
 
 ### 6.4 Central Access Points and Endpoints
 
-All services deployed in the cyberrange (both the OpenStack infrastructure layer and the Kubernetes/k3s application layer) are exposed via specific IP addresses, ports, and paths.
+All services deployed in the cyberrange (both the OpenStack infrastructure layer
+and the Kubernetes/k3s application layer) are exposed via specific IP addresses,
+ports, and paths.
 
 #### 1. OpenStack Infrastructure Services (HTTP - Port 80)
 
@@ -184,7 +193,8 @@ These are hosted on the OpenStack Virtual IP (`10.1.2.9`):
 
 #### 2. CyberRange Portal & Application Services (HTTPS - Port 443)
 
-These are hosted on the Kubernetes cluster master IP (`<cluster_ip>`) and routed via the Traefik ingress controller:
+These are hosted on the Kubernetes cluster master IP (`<cluster_ip>`) and routed
+via the Traefik ingress controller:
 
 | Service / Interface | URL Path | Port | Username / Password Retrieval |
 |---|---|---|---|
@@ -196,20 +206,27 @@ These are hosted on the Kubernetes cluster master IP (`<cluster_ip>`) and routed
 | **Headlamp (K8s Dashboard) Self Deployed** | `<<https://<cluster_ip>/headlamp`>> | 443 | Token authentication: `vagrant ssh -c "sudo kubectl create token my-headlamp -n kube-system"` |
 
 > [!NOTE]
-> The `<cluster_ip>` is the internal floating IP of the Kubernetes management node in your OpenStack deployment. You can output this IP from your host using:
+> The `<cluster_ip>` is the internal floating IP of the Kubernetes management
+node in your OpenStack deployment. You can output this IP from your host using:
 >
 > ```bash
-> vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-openstack-base output -raw cluster_ip"
+> vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-openstack-base
+output -raw cluster_ip"
 > ```
 
 > [!TIP]
-> Since Headlamp is self-deployed manually rather than by the automated platform scripts, refer to [troubleshooting-commands.md](./troubleshooting-commands.md#7-deploying--exposing-headlamp-kubernetes-dashboard-manually) for details on how it was set up and how to redeploy or configure it.
+> Since Headlamp is self-deployed manually rather than by the automated platform
+> scripts, refer to [troubleshooting-commands.md][ref-headlamp-setup]
+> for details on how it was set up and how to redeploy or configure it.
+
+[ref-headlamp-setup]: ./troubleshooting-commands.md#7-deploying--exposing-headlamp-kubernetes-dashboard-manually
 
 ---
 
 ## 7. Kubernetes (k3s)
 
-Kubernetes is deployed **inside** OpenStack via the `devops-tf-deployment` Terraform repository.
+Kubernetes is deployed **inside** OpenStack via the `devops-tf-deployment`
+Terraform repository.
 
 | Property | Value |
 |---|---|
@@ -259,7 +276,8 @@ Kubernetes is deployed **inside** OpenStack via the `devops-tf-deployment` Terra
 | **Firewall** | TCP/22 open to `0.0.0.0/0` |
 | **Auth** | `auth.json` service account key file |
 
-> **⚠️ OS mismatch:** The GCP boot image is Ubuntu **20.04**, while the Vagrant box uses
+> **⚠️ OS mismatch:** The GCP boot image is Ubuntu **20.04**, while the Vagrant
+box uses
 > Ubuntu **24.04**. Verify script compatibility before deploying via this path.
 
 ---
@@ -345,7 +363,8 @@ sshuttle -r root@<host> 10.1.2.0/24
 | OpenStack app credential | `demo` | `password` |
 
 > [!NOTE]
-> If you are running Vagrant inside the Docker wrapper, run the commands using the docker container:
+> If you are running Vagrant inside the Docker wrapper, run the commands using
+the docker container:
 >
 > ```bash
 > # Example to retrieve the OpenStack Horizon admin password:
@@ -363,10 +382,17 @@ sshuttle -r root@<host> 10.1.2.0/24
 
 ## 14. Related Documentation
 
-- [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for deploying Node-RED HMI and OpenPLC
-- [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide on importing and allocating sandboxes in the Portal UI
-- [Simple OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training solution walkthrough (simple 3-level scenario)
-- [Complex OT Sandbox Solutions](./complex-ot-solutions.md) — Walkthrough for the realistic 6-level EWS pivot scenario
-- [Command Tracking & Assessment](./command-tracking-and-assessment.md) — Assessment tab requirements and limitations
-- [Thesis Research Findings](./thesis-research-findings.md) — Thesis research notes, critiques, emulations limits, and PCAP analysis
-- [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing and uploading OS images to OpenStack Glance
+- [OT Sandbox Deployment Guide](./deploy-ot-sandbox.md) — Step-by-step guide for
+  deploying Node-RED HMI and OpenPLC
+- [OT Sandbox Portal Guide](./deploy-ot-scenario-portal.md) — Step-by-step guide
+  on importing and allocating sandboxes in the Portal UI
+- [Simple OT Sandbox Solutions](./ot-sandbox-solutions.md) — Complete training
+  solution walkthrough (simple 3-level scenario)
+- [Complex OT Sandbox Solutions](./complex-ot-solutions.md) — Walkthrough for
+  the realistic 6-level EWS pivot scenario
+- [Command Tracking & Assessment](./command-tracking-and-assessment.md) —
+  Assessment tab requirements and limitations
+- [Thesis Research Findings](./thesis-research-findings.md) — Thesis research
+  notes, critiques, emulations limits, and PCAP analysis
+- [Base Boxes & Image Management Guide](./base-boxes-management.md) — Sourcing
+  and uploading OS images to OpenStack Glance

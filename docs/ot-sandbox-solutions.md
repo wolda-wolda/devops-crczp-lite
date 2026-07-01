@@ -1,6 +1,9 @@
 # OT Sandbox — Training Solution Walkthrough
 
-This document provides the complete step-by-step solutions for all four levels of the **Simple OT Simulation Sandbox** training scenario. All commands are executed from the **Kali attacker-host** GUI console accessed via the Guacamole web interface.
+This document provides the complete step-by-step solutions for all four levels
+of the **Simple OT Simulation Sandbox** training scenario. All commands are
+executed from the **Kali attacker-host** GUI console accessed via the Guacamole
+web interface.
 
 ---
 
@@ -22,13 +25,15 @@ This document provides the complete step-by-step solutions for all four levels o
 | `10.10.10.10` (SCADA HMI) | `192.168.99.10` (PLC) | `502` | ALLOW |
 
 > [!IMPORTANT]
-> The attacker cannot directly reach the PLC. All Modbus traffic must be pivoted through the compromised SCADA HMI node.
+> The attacker cannot directly reach the PLC. All Modbus traffic must be pivoted
+through the compromised SCADA HMI node.
 
 ---
 
 ## Level 0: Welcome (INFO_LEVEL)
 
-Read the introduction describing the lab environment. No action required — click **Next**.
+Read the introduction describing the lab environment. No action required — click
+**Next**.
 
 ---
 
@@ -43,7 +48,8 @@ Read the introduction describing the lab environment. No action required — cli
 
 ## Level 2: SCADA Exploitation
 
-**Objective:** Exploit the unauthenticated Node-RED interface on `scada-hmi` to execute arbitrary commands and read `/root/flag.txt`.
+**Objective:** Exploit the unauthenticated Node-RED interface on `scada-hmi` to
+execute arbitrary commands and read `/root/flag.txt`.
 
 **Answer:** `FLAG{SCADA_EXPLOITED_RCE}`
 
@@ -76,7 +82,9 @@ Open the **Firefox** browser on Kali and navigate to:
 <<http://10.10.10.10:1880/>>
 ```
 
-This opens the Node-RED visual flow editor. The interface is **unauthenticated** — no login is required. This is the vulnerability being exploited: an exposed flow editor allows arbitrary command execution on the host.
+This opens the Node-RED visual flow editor. The interface is **unauthenticated**
+— no login is required. This is the vulnerability being exploited: an exposed
+flow editor allows arbitrary command execution on the host.
 
 ### Step 3 — Build a Command Execution Flow
 
@@ -102,7 +110,8 @@ In the Node-RED editor, construct a flow with three nodes wired together:
 
 8. **Wire them together:**
    - Draw a wire from the **inject** node output → **exec** node input
-   - Draw a wire from the **exec** node's first output (stdout) → **debug** node input
+   - Draw a wire from the **exec** node's first output (stdout) → **debug** node
+     input
 
 The flow should look like:
 
@@ -114,7 +123,8 @@ The flow should look like:
 
 9. Click the **Deploy** button (top-right, red button)
 10. Open the **debug panel** (bug icon on the right sidebar)
-11. Click the small blue button on the left side of the **inject** node to trigger it
+11. Click the small blue button on the left side of the **inject** node to
+    trigger it
 
 ### Step 5 — Read the Flag
 
@@ -130,13 +140,16 @@ Submit this as the answer for Level 2.
 
 ## Level 3: OT Sabotage
 
-**Objective:** Pivot through the compromised SCADA HMI to write value `9999` to Modbus Holding Register 0 on the PLC, triggering the simulation monitor daemon to write a sabotage flag.
+**Objective:** Pivot through the compromised SCADA HMI to write value `9999` to
+Modbus Holding Register 0 on the PLC, triggering the simulation monitor daemon
+to write a sabotage flag.
 
 **Answer:** `FLAG{OT_SABOTAGE_SUCCESS}`
 
 ### Step 1 — Verify Network Constraints
 
-From the Kali terminal, confirm that the attacker cannot directly reach the PLC on port 502:
+From the Kali terminal, confirm that the attacker cannot directly reach the PLC
+on port 502:
 
 ```bash
 nmap -p 502 192.168.99.10
@@ -153,7 +166,9 @@ The port is **filtered** — the router firewall is blocking direct access.
 
 ### Step 2 — Send the Modbus Write Command via Node-RED
 
-Since you already have command execution on `scada-hmi` through the Node-RED exec node, use it to run a Python script that sends a raw Modbus TCP write request from the HMI (which is allowed through the firewall).
+Since you already have command execution on `scada-hmi` through the Node-RED
+exec node, use it to run a Python script that sends a raw Modbus TCP write
+request from the HMI (which is allowed through the firewall).
 
 In the Node-RED editor (`<<http://10.10.10.10:1880/>>`):
 
@@ -193,9 +208,12 @@ Response: 000100000006010600002710
 
 ### Step 3 — Retrieve the Sabotage Flag
 
-The `simulation-monitor` daemon on `openplc-node` polls Holding Register 0 every second. When it detects the value `9999`, it writes the flag to `/root/flag2.txt` and exits.
+The `simulation-monitor` daemon on `openplc-node` polls Holding Register 0 every
+second. When it detects the value `9999`, it writes the flag to
+`/root/flag2.txt` and exits.
 
-To retrieve the flag, use an exec node in Node-RED to read it. You have several options:
+To retrieve the flag, use an exec node in Node-RED to read it. You have several
+options:
 
 **Option A — Read via another Modbus query and exec node:**
 
@@ -205,17 +223,20 @@ Create a new exec node with the command:
 python3 -c "import socket; s=socket.socket(); s.connect(('192.168.99.10',502)); s.sendall(b'\x00\x02\x00\x00\x00\x06\x01\x03\x00\x00\x00\x01'); r=s.recv(1024); val=(r[9]<<8)|r[10]; print('Register 0 value:', val); s.close()"
 ```
 
-This confirms the register was written. The flag itself is on the PLC filesystem.
+This confirms the register was written. The flag itself is on the PLC
+filesystem.
 
 **Option B — Read the flag file via the OpenPLC web admin interface:**
 
-Navigate to `<<http://192.168.99.10:8080`>> from a Node-RED exec node (via curl):
+Navigate to `<<http://192.168.99.10:8080`>> from a Node-RED exec node (via
+curl):
 
 ```text
 curl -s <<http://192.168.99.10:8080>>
 ```
 
-The default OpenPLC credentials are `openplc` / `openplc`. You can explore the admin panel to find ways to read files.
+The default OpenPLC credentials are `openplc` / `openplc`. You can explore the
+admin panel to find ways to read files.
 
 **Option C — Read via SSH (if keys are shared):**
 

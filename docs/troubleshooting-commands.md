@@ -1,12 +1,14 @@
 # KYPO Cyber Range Platform Command & Troubleshooting Reference
 
-This document compiles the commands used for managing, debugging, and cleaning up the local CyberRangeCZ (KYPO) platform.
+This document compiles the commands used for managing, debugging, and cleaning
+up the local CyberRangeCZ (KYPO) platform.
 
 ---
 
 ## 1. Vagrant / Host-Level Commands
 
-These commands are run on the host machine in the `/opt/cyber-range/devops-crczp-lite` directory.
+These commands are run on the host machine in the
+`/opt/cyber-range/devops-crczp-lite` directory.
 
 ### Check VM Status
 
@@ -36,7 +38,8 @@ vagrant ssh -c "sudo kubectl get pods -n crczp"
 
 ## 2. Kubernetes (k3s) Commands
 
-Run these inside the Vagrant VM (or prefix with `vagrant ssh -c "..."` on the host).
+Run these inside the Vagrant VM (or prefix with `vagrant ssh -c "..."` on the
+host).
 
 ### List Pods in All Namespaces
 
@@ -96,7 +99,8 @@ sudo kubectl get configmap training-service-configmap -n crczp -o yaml
 
 ## 3. OpenStack CLI Commands
 
-To run OpenStack CLI commands, you must first source the admin configuration and activate the Kolla Ansible python virtual environment in the Vagrant VM.
+To run OpenStack CLI commands, you must first source the admin configuration and
+activate the Kolla Ansible python virtual environment in the Vagrant VM.
 
 ### Standard Setup Script
 
@@ -121,7 +125,8 @@ openstack network list
 
 ### Delete Stuck/Orphaned Network
 
-If a sandbox deletion fails, it may leave network resources behind. Delete them manually:
+If a sandbox deletion fails, it may leave network resources behind. Delete them
+manually:
 
 ```bash
 openstack network delete <network-id-or-name>
@@ -138,7 +143,9 @@ openstack port list
 
 ## 4. PostgreSQL Database Queries
 
-KYPO databases are managed via CloudNative-PG (`cnpg`) in Kubernetes. The database cluster is accessible at `postgres-rw.cnpg-system.svc.cluster.local:5432`.
+KYPO databases are managed via CloudNative-PG (`cnpg`) in Kubernetes. The
+database cluster is accessible at
+`postgres-rw.cnpg-system.svc.cluster.local:5432`.
 
 ### List Databases
 
@@ -170,7 +177,9 @@ sudo kubectl exec -n cnpg-system postgres-1 -- psql -U postgres -d sandbox-servi
 
 ## 5. Django DB Cleanup (Django Shell)
 
-When the UI gets stuck due to failed Git pulls or Terraform allocations, you can force-delete definitions or pools from the database using the Django interactive shell inside the `sandbox-service` container.
+When the UI gets stuck due to failed Git pulls or Terraform allocations, you can
+force-delete definitions or pools from the database using the Django interactive
+shell inside the `sandbox-service` container.
 
 ### Run Django Commands Direct
 
@@ -207,7 +216,8 @@ Definition.objects.filter(id=2).delete()
 '
 ```
 
-*Note: Due to Django's cascading deletes, deleting a Pool will automatically clean up all dependent Sandboxes, SandboxAllocationUnits, and Stages.*
+*Note: Due to Django's cascading deletes, deleting a Pool will automatically
+clean up all dependent Sandboxes, SandboxAllocationUnits, and Stages.*
 
 ---
 
@@ -229,7 +239,8 @@ Definition.objects.filter(id=2).delete()
 
 ## 7. Deploying & Exposing Headlamp (Kubernetes Dashboard) Manually
 
-Since Headlamp is self-deployed, you can recreate, upgrade, or configure the installation using the following commands:
+Since Headlamp is self-deployed, you can recreate, upgrade, or configure the
+installation using the following commands:
 
 ### Step A: Add the Helm Repository (inside the Vagrant VM)
 
@@ -240,7 +251,8 @@ vagrant ssh -c "sudo helm repo update"
 
 ### Step B: Install/Upgrade the Release with Traefik Ingress
 
-To configure Headlamp to run under the `/headlamp` prefix and expose it through Traefik, run:
+To configure Headlamp to run under the `/headlamp` prefix and expose it through
+Traefik, run:
 
 ```bash
 vagrant ssh -c "sudo helm upgrade --install my-headlamp headlamp/headlamp \
@@ -254,7 +266,10 @@ vagrant ssh -c "sudo helm upgrade --install my-headlamp headlamp/headlamp \
 
 ### Step C: Handle Trailing Slash Redirection (Optional but Recommended)
 
-By default, Headlamp expects requests to include a trailing slash (e.g. `/headlamp/`). To make `/headlamp` automatically redirect to `/headlamp/` (preventing a 404 error), configure a Traefik RedirectRegex middleware and annotate the Ingress:
+By default, Headlamp expects requests to include a trailing slash (e.g.
+`/headlamp/`). To make `/headlamp` automatically redirect to `/headlamp/`
+(preventing a 404 error), configure a Traefik RedirectRegex middleware and
+annotate the Ingress:
 
 1. **Create the Middleware resource:**
 
