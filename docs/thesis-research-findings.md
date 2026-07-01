@@ -14,7 +14,28 @@ This document summarizes the findings, system designs, technical hurdles, and li
 
 ---
 
-## 🌐 2. Purde Model Topology & Provisioning (RQ 1)
+## 📊 1.1 Cyber Range Taxonomy & Classification
+
+Under standard cyber range taxonomies (e.g., Davis et al.), this platform is classified as an **Emulation Cyber Range (Virtualization-based)**.
+
+### Taxonomy Matrix
+
+| Category | Definition | Sandbox Alignment |
+|---|---|---|
+| **Simulation** | Software-only conceptual models of network components (e.g., ns-3) without real OS instances. | *No* — Guest instances run full OS kernels. |
+| **Emulation** | Hypervisor-based (KVM) or containerized virtualization running **real operating systems** and **applications**. | **Yes** — Boots full virtual machines (Kali Linux, Debian 12) with custom service configurations. |
+| **Hybrid** | Integrates virtualized components with physical production hardware in-the-loop. | *No* — Environment is fully self-contained inside the virtual host. |
+| **Physical** | Pure physical hardware infrastructure. | *No* — Entirely software-virtualized. |
+
+### Hybrid Reality of the OT Sandbox
+
+While the cyber range framework utilizes **emulation** for the guest hosts and networks, the OT scenario employs a hybrid approach:
+*   **Emulated IT Infrastructure:** Attacker workstation, engineering stations, firewall routers, and operations subnets run on full VM guest kernels.
+*   **Simulated Physical Process:** The PLC is a virtual PLC (OpenPLC) running inside a standard Debian VM. The physical hardware control logic (e.g., cooling pumps, actuators) and their feedback values are simulated programmatically in software.
+
+---
+
+## 🌐 2. Purdue Model Topology & Provisioning (RQ 1)
 *How can realistic OT network topologies be effectively modeled and provisioned within CyberRangeCZ using native IaC?*
 
 ### Network Layout & Zones
@@ -174,6 +195,123 @@ During scenario packaging, we evaluated the deployment of linear vs. adaptive tr
 
 > **Academic Reference Source:**
 > *Vykopal, J., Seda, V., & Tovarnak, D. (2020). "Design and Evaluation of Adaptive Cybersecurity Training in Cyber Ranges." In Proceedings of the 51st ACM Technical Symposium on Computer Science Education (SIGCSE).*
+
+### F. Future Work: Transitioning to a Hybrid Cyber Range (Hardware-in-the-Loop)
+
+While the current sandbox relies on software-emulated controllers (e.g., OpenPLC inside Debian VMs), the architecture is extensible to a **Hybrid Cyber Range (Hardware-in-the-Loop)** model. This integration connects virtual nodes to real-world industrial control hardware (e.g., physical PLCs, actuators, smart switches, or inline security appliances). 
+
+---
+
+### 1. Technical Setup & Deployment Configurations
+
+Depending on the deployment target (local bare-metal vs. public cloud), the integration requires distinct networking patterns:
+
+#### A. Local Bare-Metal Hypervisor Model
+This model maps virtual interfaces directly to local physical switch ports:
+1.  **Physical Host Setup:** A physical Ethernet port on the hypervisor host (e.g., `eth3`) is physically wired to a managed switch port configured for industrial traffic.
+2.  **OpenStack Neutron Configuration:** In Neutron's ML2 config (`/etc/kolla/neutron-server/ml2_conf.ini`), map the physical network bridge to the host interface:
+    ```ini
+    [ml2_type_flat]
+    flat_networks = physnet1
+    [ovs]
+    bridge_mappings = physnet1:br-eth3
+    ```
+3.  **Sandbox Provisioning:** Create a **flat provider network** inside OpenStack. Sandbox instances (e.g., the virtual Engineering Workstation) attached to this network are placed directly onto the physical L2 switch, enabling seamless communication with physical PLCs.
+
+#### B. Public Cloud Deployment Model (GCP/AWS)
+Because cloud-deployed ranges do not have access to local hardware interfaces, integration must be established over the internet using tunneling:
+
+##### 1. Site-to-Site L3 VPN (Routable Protocols)
+For standard IP-routable protocols (like Modbus TCP or DNP3):
+1.  **VPC / Gateway Setup:** The sandbox's virtual firewall router (`ot-gateway`) is configured with a VPN tunnel daemon (e.g., WireGuard or StrongSwan).
+2.  **Lab Gateway:** A physical VPN gateway router (like a pfSense box or Cisco router) is placed at the edge of the physical OT lab.
+3.  **Routing:** Configure routing rules on the virtual gateway to route the virtual subnet range to the VPN tunnel interface and vice-versa, allowing L3 communication between the cloud Attacker VM and the local PLC.
+
+##### 2. L2-over-L3 Encapsulation Overlays (Non-Routable Protocols)
+For industrial protocols that rely on Layer 2 broadcast/multicast (e.g. GOOSE or PROFINET discovery):
+1.  **VXLAN Overlay Tunnel:** Configure a VXLAN interface on the virtual gateway (`ot-gateway` or a dedicated bridge VM):
+    ```bash
+    ip link add vxlan0 type vxlan id 42 group 239.1.1.1 dev eth0 dstport 4789
+    ip link set vxlan0 up
+    ```
+2.  **Lab Endpoint:** A physical gateway PC or Raspberry Pi inside the physical lab is configured with a matching VXLAN endpoint and bridged directly to the physical OT network switch.
+3.  **L2 Adjacency:** This encapsulates raw L2 frames into UDP packets, allowing them to traverse the internet tunnel and decapsulate directly onto the local lab network, making cloud VMs appear physically connected to the local switch.
+
+---
+
+### 2. Multi-Scenario Examples (Use Cases)
+
+Below are three examples of how a hybrid attack path behaves and how the traffic flows:
+
+```
+┌──────────────────────────────────────┐
+│  Cloud CyberRange (GCP/AWS)          │
+│  [Attacker VM] ──► [ot-gateway]      │
+└─────────────────────────┬────────────┘
+                          │ (VPN / VXLAN Tunnel)
+                          ▼
+┌──────────────────────────────────────┐
+│  Physical OT Hardware Lab            │
+│  [Lab Gateway] ──► [Managed Switch]  │
+│                           │          │
+│      ┌────────────────────┼──────────┐
+│      ▼                    ▼          ▼
+│ [Siemens S7-1500]    [Relay IED]   [SCADA HMI]
+└──────────────────────────────────────┘
+```
+
+#### Example A: Routable Modbus TCP Hijacking (Level 1/2)
+*   **The Target:** A physical Modbus-enabled pump controller (PLC) regulating water tank pressure in the physical lab.
+*   **The Attack Path:**
+    1.  Trainee initiates a Modbus write command from the cloud-based `attacker-host`:
+        ```bash
+        modbus <physical-plc-ip> 0=9999
+        ```
+    2.  The packet is routed through `ot-gateway` and sent across the IPsec/WireGuard VPN tunnel.
+    3.  The physical lab firewall decapsulates the packet and forwards it to the physical PLC.
+    4.  The physical PLC processes the write request, bringing Holding Register 0 to `9999` (overpressure simulation), which opens a physical exhaust valve and illuminates a red indicator LED on the lab console.
+
+#### Example B: Non-Routable L2 GOOSE Frame Injection
+*   **The Target:** A physical Intelligent Electronic Device (IED / Protection Relay) controlling a physical circuit breaker in an electrical substation model.
+*   **The Attack Path:**
+    1.  Trainee generates a raw multicast IEC 61850 GOOSE payload on the cloud VM targeting the multicast MAC `01-0C-CD-01-00-01` to trigger a fake "Overcurrent Trip" signal.
+    2.  Because the frame is non-routable, it is routed into the local VXLAN interface on `ot-gateway`.
+    3.  The VXLAN interface wraps the Ethernet frame in a UDP wrapper and sends it across the internet to the local lab endpoint.
+    4.  The local endpoint strips the UDP header and broadcasts the raw GOOSE frame onto the physical switch.
+    5.  The physical Protection Relay processes the multicast frame, matches the dataset, and immediately opens the physical circuit breaker with an audible click.
+
+#### Example C: Proprietary Siemens S7comm-plus Command Replay
+*   **The Target:** A physical Siemens S7-1500 PLC regulating a conveyor belt assembly line.
+*   **The Attack Path:**
+    1.  Trainee captures legitimate S7comm-plus traffic from the physical network (e.g. via passive tcpdump or previous exercise captures).
+    2.  From the cloud attack host, they run a replay script to inject a series of proprietary `CPU STOP` command packets targeting TCP port `102` of the Siemens PLC.
+    3.  The packets travel via the Direct Port Mapping (local bare-metal setup) to ensure sub-millisecond delivery.
+    4.  The physical PLC receives the replay sequence, halts CPU program execution, and stops the physical conveyor belt motor immediately.
+
+---
+
+### 3. Technical Limitations & Challenges
+
+While powerful, implementing a hybrid cyber range introduces several system-level constraints:
+
+#### A. Network Latency & Jitter
+*   **The Constraint:** Cloud-to-lab tunnels suffer from network latency (typically > 20ms over WAN) and packet arrival jitter.
+*   **The Impact:** High-precision industrial networks that rely on real-time protocols with strict determinism (such as PROFINET IRT or EtherCAT, requiring sub-millisecond sync cycles) cannot function properly over WAN tunnels. If the connection fails to meet timing windows, the PLC enters a watchdog timeout state and trips a hardware fault.
+*   **Remediation:** High-precision loop simulations must be kept entirely local on bare-metal servers, reserving cloud tunnels for non-real-time L3 protocols like Modbus TCP, DNP3, and OPC-UA.
+
+#### B. MTU Overhead & Fragmentation
+*   **The Constraint:** Tunnel encapsulation (like VXLAN or GRE) adds byte overhead to the IP header (50 bytes for VXLAN).
+*   **The Impact:** Standard Ethernet packets (1500 bytes MTU) will exceed the maximum transmission size and become fragmented when entering the tunnel. Because legacy PLC TCP/IP stacks often have primitive network drivers, they cannot handle fragmented IP packets and will drop them, causing connection drops or timeouts.
+*   **Remediation:** Ensure path MTU discovery is active, and configure the cloud virtual interfaces to use a reduced MTU (e.g. `1450` for VXLAN or `1420` for WireGuard) to prevent fragmentation.
+
+#### C. VLAN Tagging & Managed Switch Constraints
+*   **The Constraint:** Using OpenStack's Neutron VLAN network provider mode requires mapping VLAN tags from the virtual environment straight onto physical switches.
+*   **The Impact:** The physical lab switch ports must be configured as IEEE 802.1Q trunk ports with matching VLAN ID memberships. Stale configuration, spanning-tree blocking, or switchport security limits (like maximum MAC limits per port) will block the OpenStack virtual interfaces from communicating.
+
+#### D. Hardware Safety & Mechanical Damage
+*   **The Constraint:** Trainees are executing real exploits against physical machinery.
+*   **The Impact:** Unlike virtual machines that can be rebooted or reset to snapshot, physical hardware can be permanently damaged by malicious control sequences (e.g. cycling a circuit breaker thousands of times, or running a motor past mechanical limits).
+*   **Remediation:** Physical hardware setups must incorporate hard-wired safety interlocks (like limit switches and physical emergency stops) and software sanity bounds in the PLC program that override malicious write inputs to prevent equipment damage or operator injury.
 
 ---
 

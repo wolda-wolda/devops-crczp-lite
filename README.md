@@ -27,13 +27,31 @@ docker run -it --rm \
   vagrant up
 ```
 
-The URL of the CyberRangeCZ Platform portal is shown at the end of the provisioning. In case of deployment on your desktop, you can access the URL directly.
+The URL of the CyberRangeCZ Platform portal is shown at the end of the provisioning. 
 
-In case of running Vagrant instance on a remote host, it's convenient to tunnel communication over ssh, e.g. with sshuttle:
-```
-sshuttle -r root@host 10.1.2.0/24
-```
-where host is IP/FQDN of your remote server.
+### How to Access the Services from your Local Machine
+
+Depending on your setup, you can access OpenStack Horizon (at `http://10.1.2.9`) and the CyberRange Portal (at `https://<cluster_ip>/`) using one of these options:
+
+#### Option A: Local Deployment (VM runs on your local machine)
+Because the `10.1.2.0/24` subnet is automatically bridged to your local machine, you can navigate directly to the IPs in your browser. No additional tunneling is required.
+
+#### Option B: Remote Deployment (VM runs on a remote server/cloud VM)
+If you run the Vagrant instance on a remote host, you must route the `10.1.2.0/24` subnet to your local machine:
+* **Using `sshuttle` (Recommended):**
+  ```bash
+  sshuttle -r root@<remote-host-ip> 10.1.2.0/24
+  ```
+* **Using SSH Port Forwarding:**
+  If you cannot use `sshuttle`, forward the specific ports:
+  ```bash
+  # For OpenStack Horizon
+  ssh -L 8080:10.1.2.9:80 -N root@<remote-host-ip>
+
+  # For CyberRange Portal
+  ssh -L 8443:<cluster_ip>:443 -N root@<remote-host-ip>
+  ```
+  *(Note: Remote access to the Portal via simple port-forwarding might experience redirection issues with Keycloak. `sshuttle` is strongly recommended.)*
 
 ## Additional information
 

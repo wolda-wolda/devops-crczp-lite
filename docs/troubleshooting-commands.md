@@ -177,3 +177,61 @@ Definition.objects.filter(id=2).delete()
   * Password: `password` (User is named `Demo Admin` in Keycloak)
 * **Grafana Dashboard**: `https://10.1.2.175/grafana/`
   * Username/Password are fetched from Keycloak client secrets.
+* **Headlamp (Kubernetes Dashboard)**: `https://10.1.2.175/headlamp/`
+  * Authentication: Requires a bearer token. Generate it from the host using:
+    ```bash
+    vagrant ssh -c "sudo kubectl create token my-headlamp -n kube-system"
+    ```
+
+---
+
+## 7. Deploying & Exposing Headlamp (Kubernetes Dashboard) Manually
+
+Since Headlamp is self-deployed, you can recreate, upgrade, or configure the installation using the following commands:
+
+### Step A: Add the Helm Repository (inside the Vagrant VM)
+```bash
+vagrant ssh -c "sudo helm repo add headlamp https://kubernetes-sigs.github.io/headlamp/"
+vagrant ssh -c "sudo helm repo update"
+```
+
+### Step B: Install/Upgrade the Release with Traefik Ingress
+To configure Headlamp to run under the `/headlamp` prefix and expose it through Traefik, run:
+```bash
+vagrant ssh -c "sudo helm upgrade --install my-headlamp headlamp/headlamp \
+  -n kube-system \
+  --set config.baseURL=/headlamp \
+  --set ingress.enabled=true \
+  --set ingress.ingressClassName=traefik \
+  --set 'ingress.hosts[0].paths[0].path=/headlamp' \
+  --set 'ingress.hosts[0].paths[0].type=Prefix'"
+```
+
+### Step C: Handle Trailing Slash Redirection (Optional but Recommended)
+By default, Headlamp expects requests to include a trailing slash (e.g. `/headlamp/`). To make `/headlamp` automatically redirect to `/headlamp/` (preventing a 404 error), configure a Traefik RedirectRegex middleware and annotate the Ingress:
+
+1. **Create the Middleware resource:**
+   ```bash
+   vagrant ssh -c "cat <<'EOF' | sudo kubectl apply -f -
+   apiVersion: traefik.io/v1alpha1
+   kind: Middleware
+   metadata:
+     name: headlamp-redirect
+     namespace: kube-system
+   spec:
+     redirectRegex:
+       regex: '^(https?://[^/]+)/headlamp$'
+       replacement: '\${1}/headlamp/'
+       permanent: true
+   EOF"
+   ```
+
+2. **Annotate the Ingress:**
+   ```bash
+   vagrant ssh -c "sudo kubectl annotate ingress my-headlamp -n kube-system \"traefik.ingress.kubernetes.io/router.middlewares=kube-system-headlamp-redirect@kubernetescrd\" --overwrite"
+   ```
+
+### Step D: Generate Login Token
+```bash
+vagrant ssh -c "sudo kubectl create token my-headlamp -n kube-system"
+```

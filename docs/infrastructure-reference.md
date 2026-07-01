@@ -189,12 +189,16 @@ These are hosted on the Kubernetes cluster master IP (`<cluster_ip>`) and routed
 | **Grafana Dashboard** | `https://<cluster_ip>/grafana` | 443 | `admin` / `vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-head-services output -raw monitoring_admin_password"` |
 | **Prometheus API** | `https://<cluster_ip>/prometheus/` | 443 | Requires basic authentication using `admin` credentials (same password as Grafana). |
 | **Alertmanager** | `https://<cluster_ip>/alerts/` | 443 | Requires basic authentication using `admin` credentials. |
+| **Headlamp (K8s Dashboard) Self Deployed** | `https://<cluster_ip>/headlamp` | 443 | Token authentication: `vagrant ssh -c "sudo kubectl create token my-headlamp -n kube-system"` |
 
 > [!NOTE]
 > The `<cluster_ip>` is the internal floating IP of the Kubernetes management node in your OpenStack deployment. You can output this IP from your host using:
 > ```bash
 > vagrant ssh -c "sudo tofu -chdir=/root/devops-tf-deployment/tf-openstack-base output -raw cluster_ip"
 > ```
+
+> [!TIP]
+> Since Headlamp is self-deployed manually rather than by the automated platform scripts, refer to [troubleshooting-commands.md](./troubleshooting-commands.md#7-deploying--exposing-headlamp-kubernetes-dashboard-manually) for details on how it was set up and how to redeploy or configure it.
 
 ---
 
