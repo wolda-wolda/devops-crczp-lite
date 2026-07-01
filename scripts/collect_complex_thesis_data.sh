@@ -5,12 +5,13 @@
 BACKUP_DIR="/vagrant/thesis_data_dumps_complex"
 mkdir -p "$BACKUP_DIR"
 
-HMI_IP="192.168.128.159"
-PLC_IP="192.168.131.168"
-EWS_IP="192.168.128.214"
-ROUTER_IP="192.168.128.251"
-KEY_FILE="/tmp/pool-53.key"
-NETNS="qdhcp-68892d7b-21cb-4022-8ece-455b7d1761be"
+HMI_IP="192.168.129.238"
+PLC_IP="192.168.129.203"
+EWS_IP="192.168.128.181"
+ROUTER_IP="192.168.128.159"
+DMZ_IP="192.168.128.251"
+KEY_FILE="/tmp/pool-57.key"
+NETNS="qdhcp-42596486-a83c-4569-b032-5d538cf28331"
 
 ssh_cmd() {
   sudo ip netns exec "$NETNS" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=10 -i "$KEY_FILE" debian@"$1" "$2"
@@ -64,6 +65,15 @@ ssh_cmd "$EWS_IP" "ip a" > "$BACKUP_DIR/ews_networking.txt"
 ssh_cmd "$EWS_IP" "ip route" > "$BACKUP_DIR/ews_routing.txt"
 ssh_cmd "$EWS_IP" "sudo ss -tlnp" > "$BACKUP_DIR/ews_ports.txt"
 ssh_cmd "$EWS_IP" "sudo systemctl status safety-monitor 2>/dev/null || sudo systemctl status simulation-monitor 2>/dev/null" > "$BACKUP_DIR/ews_status.txt"
+
+# 4.5. DMZ specs
+echo "Collecting DMZ Jump Host specs..."
+ssh_cmd "$DMZ_IP" "lscpu" > "$BACKUP_DIR/dmz_cpu.txt"
+ssh_cmd "$DMZ_IP" "free -h" > "$BACKUP_DIR/dmz_ram.txt"
+ssh_cmd "$DMZ_IP" "df -h" > "$BACKUP_DIR/dmz_disk.txt"
+ssh_cmd "$DMZ_IP" "ip a" > "$BACKUP_DIR/dmz_networking.txt"
+ssh_cmd "$DMZ_IP" "ip route" > "$BACKUP_DIR/dmz_routing.txt"
+ssh_cmd "$DMZ_IP" "sudo ss -tlnp" > "$BACKUP_DIR/dmz_ports.txt"
 
 # 5. Router firewall rules
 echo "Collecting Router firewall rules..."

@@ -5,16 +5,16 @@
     inet6 ::1/128 scope host noprefixroute 
        valid_lft forever preferred_lft forever
 2: ens3: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc fq_codel state UP group default qlen 1000
-    link/ether fa:16:3e:6b:35:6b brd ff:ff:ff:ff:ff:ff
+    link/ether fa:16:3e:e1:10:f6 brd ff:ff:ff:ff:ff:ff
     altname enp0s3
-    inet 192.168.128.181/17 metric 200 brd 192.168.255.255 scope global dynamic ens3
-       valid_lft 85433sec preferred_lft 85433sec
-    inet6 fe80::f816:3eff:fe6b:356b/64 scope link 
+    inet 192.168.128.251/17 metric 200 brd 192.168.255.255 scope global dynamic ens3
+       valid_lft 85431sec preferred_lft 85431sec
+    inet6 fe80::f816:3eff:fee1:10f6/64 scope link 
        valid_lft forever preferred_lft forever
 3: ens4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc fq_codel state UP group default qlen 1000
-    link/ether fa:16:3e:82:a7:66 brd ff:ff:ff:ff:ff:ff
+    link/ether fa:16:3e:7a:c4:2e brd ff:ff:ff:ff:ff:ff
     altname enp0s4
-    inet 192.168.20.20/24 metric 100 brd 192.168.20.255 scope global dynamic ens4
-       valid_lft 85433sec preferred_lft 85433sec
-    inet6 fe80::f816:3eff:fe82:a766/64 scope link 
+    inet 192.168.50.50/24 metric 100 brd 192.168.50.255 scope global dynamic ens4
+       valid_lft 85431sec preferred_lft 85431sec
+    inet6 fe80::f816:3eff:fe7a:c42e/64 scope link 
        valid_lft forever preferred_lft forever

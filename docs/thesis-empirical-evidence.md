@@ -220,10 +220,10 @@ All guest nodes in both sandboxes expose an identical CPU profile inside the Ope
 
 | Metric | Simple OT Sandbox | Complex OT Sandbox |
 |---|---|---|
-| **Virtual Machines (Count)** | 4 (`attacker`, `hmi`, `plc`, `router`) | 5 (`attacker`, `hmi`, `ews`, `plc`, `router`) |
-| **vCPUs total** | **7** (3 × 1 + 1 × 4) | **8** (4 × 1 + 1 × 4) |
-| **RAM total** | **10.3 GB** (3 × 2GB + 1 × 4.3GB) | **12.3 GB** (4 × 2GB + 1 × 4.3GB) |
-| **Disk total** | **90 GB** (3 × 10GB + 1 × 60GB) | **100 GB** (4 × 10GB + 1 × 60GB) |
+| **Virtual Machines (Count)** | 4 (`attacker`, `hmi`, `plc`, `router`) | 6 (`attacker`, `dmz_jump`, `hmi`, `ews`, `plc`, `router`) |
+| **vCPUs total** | **7** (3 × 1 + 1 × 4) | **9** (5 × 1 + 1 × 4) |
+| **RAM total** | **10.3 GB** (3 × 2GB + 1 × 4.3GB) | **14.3 GB** (5 × 2GB + 1 × 4.3GB) |
+| **Disk total** | **90 GB** (3 × 10GB + 1 × 60GB) | **110 GB** (5 × 10GB + 1 × 60GB) |
 | **Sandbox VM Flavors** | `standard.small` (OT), `kali` (Attacker) | `standard.small` (OT), `kali` (Attacker) |
 
 ---
@@ -251,6 +251,11 @@ Measurements taken immediately after system provisioning at idle state:
 | | Free RAM | N/A | 785 MiB |
 | | buff/cache | N/A | 1.0 GiB |
 | | **Safety Monitor RSS**| **3.8 MiB** (on PLC node) | **12.8 MiB** (on EWS node) |
+| **`dmz-jump`** | Total RAM | N/A (not in topology) | 1.9 GiB |
+| | **Used RAM** | N/A | **282 MiB** |
+| | Free RAM | N/A | 812 MiB |
+| | buff/cache | N/A | 915 MiB |
+| | **SSH Daemon RSS** | N/A | **5.2 MiB** |
 
 > [!NOTE]
 > The Safety Override Monitor script uses more RAM when running on the EWS (12.8 MB) than on the PLC node (3.8 MB). This is due to the additional telemetry logging and network socket management overhead required to query the remote PLC across the router instead of reading from the local loopback interface.
@@ -268,6 +273,7 @@ Measurements of the `/dev/vda1` root partition (10 GB allocated disk limit):
 | **`openplc-node`** | 2.1 GB / 23% | 1.5 GB / 16% |
 | **`scada-hmi`** | 2.0 GB / 22% | 1.5 GB / 16% |
 | **`engineering-station`**| N/A | 1.5 GB / 16% |
+| **`dmz-jump`** | N/A | 1.4 GB / 15% |
 
 > [!NOTE]
 > The higher disk usage on the Simple Sandbox (2.1 GB vs 1.5 GB in Complex) is a result of active packet capture files (PCAPs), transaction logs, and transient compile-time temporary object directories that had not been pruned at the time the dump was taken. The clean Complex Sandbox baseline is **1.5 GB** per node.
@@ -385,9 +391,9 @@ The Modbus TCP write payload captured during the EWS-to-PLC sabotage phase conta
 
 | Parameter | Simple Sandbox | Complex Sandbox | Thesis Target |
 |---|---|---|---|
-| **Virtual VMs** | 4 | 5 | Dense training topology |
-| **Total vCPUs** | 7 vCPUs | 8 vCPUs | Standard host workstation |
-| **Total RAM** | ~10.3 GB | ~12.3 GB | Host hardware capability |
+| **Virtual VMs** | 4 | 6 | Dense training topology |
+| **Total vCPUs** | 7 vCPUs | 9 vCPUs | Standard host workstation |
+| **Total RAM** | ~10.3 GB | ~14.3 GB | Host hardware capability |
 | **PLC Memory RSS** | 93.7 MB | 111.3 MB | Scalable emulation footprint |
 | **HMI Memory RSS** | 130.9 MB | 130.9 MB | Scalable emulation footprint |
 | **Disk per VM** | 2.0–2.1 GB | 1.5 GB | Minimal storage footprint |

@@ -1,22 +1,22 @@
 ● openplc.service - OpenPLC Service
      Loaded: loaded (/etc/systemd/system/openplc.service; enabled; preset: enabled)
-     Active: active (running) since Tue 2026-06-30 13:14:00 UTC; 58min ago
-   Main PID: 11926 (start_openplc.s)
-      Tasks: 12 (limit: 2348)
-     Memory: 111.3M
-        CPU: 13.114s
+     Active: active (running) since Wed 2026-07-01 11:02:00 UTC; 7min ago
+   Main PID: 11922 (start_openplc.s)
+      Tasks: 10 (limit: 2348)
+     Memory: 93.5M
+        CPU: 2.206s
      CGroup: /system.slice/openplc.service
-             ├─11926 /bin/bash /opt/OpenPLC_v3/start_openplc.sh
-             ├─11927 /opt/OpenPLC_v3/.venv/bin/python3 webserver.py
-             └─11934 ./core/openplc
+             ├─11922 /bin/bash /opt/OpenPLC_v3/start_openplc.sh
+             ├─11923 /opt/OpenPLC_v3/.venv/bin/python3 webserver.py
+             └─11930 ./core/openplc
 
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Modbus Server: client ID: 9 has closed the connection
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Terminating Modbus connections thread
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Server: Client accepted! Creating thread for the new client ID: 9...
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Server: waiting for new client...
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Server: Thread created for client ID: 9
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Server: Client accepted! Creating thread for the new client ID: 10...
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Server: waiting for new client...
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Server: Thread created for client ID: 10
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Modbus Server: client ID: 10 has closed the connection
-Jun 30 13:42:48 openplc-node start_openplc.sh[11934]: Terminating Modbus connections thread
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]: Disabling Persistent Storage
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]: persistent.file removed!
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]: Enabling S7 Protocol
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]:  * Serving Flask app 'webserver'
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]:  * Debug mode: off
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]: [INFO] 11:02:02 - WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]:  * Running on all addresses (0.0.0.0)
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]:  * Running on http://127.0.0.1:8080
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]:  * Running on http://192.168.20.10:8080
+Jul 01 11:02:02 openplc-node start_openplc.sh[11923]: [INFO] 11:02:02 - Press CTRL+C to quit

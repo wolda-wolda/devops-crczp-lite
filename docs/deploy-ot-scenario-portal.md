@@ -155,16 +155,17 @@ Deploying the **Complex OT Sandbox** (`complex-operator-ot-sandbox`) reserves su
 
 ### 1. Resource Allocations Per Sandbox Instance
 
-Each sandbox in the pool spawns **5 virtual machines** with the following hardware profiles (defined by OpenStack flavors):
+Each sandbox in the pool spawns **6 virtual machines** with the following hardware profiles (defined by OpenStack flavors):
 
 | Host / Role | Flavor | VCPUs | RAM (MB) | Disk (GB) |
 |---|---|---|---|---|
 | **attacker-host** (Kali Linux) | `kali` | 4 | 4,196 | 60 |
+| **dmz-jump** (IDMZ Jump Host) | `standard.small` | 1 | 2,048 | 10 |
 | **scada-hmi** (Node-RED HMI) | `standard.small` | 1 | 2,048 | 10 |
 | **engineering-station** (EWS) | `standard.small` | 1 | 2,048 | 10 |
 | **openplc-node** (OpenPLC PLC) | `standard.small` | 1 | 2,048 | 10 |
 | **ot-gateway** (Gateway Router) | `standard.small` | 1 | 2,048 | 10 |
-| **Total (per sandbox)** | | **8** | **12,388 (~12.1 GB)** | **100 GB** |
+| **Total (per sandbox)** | | **9** | **14,436 (~14.1 GB)** | **110 GB** |
 
 ### 2. Resource Requirements for Additional Sandboxes
 Because each sandbox in the pool is a completely isolated environment, every additional sandbox you allocate duplicates these requirements:
@@ -172,9 +173,9 @@ Because each sandbox in the pool is a completely isolated environment, every add
 $$\text{Total Pool Reservation} = \text{Pool Size} \times \text{Single Sandbox Resources}$$
 
 For example:
-*   **Pool Size = 1 (Current Default):** Requires **8 VCPUs**, **~12.1 GB RAM**, and **100 GB Disk**.
-*   **Pool Size = 2 (One additional sandbox):** Requires **16 VCPUs**, **~24.2 GB RAM**, and **200 GB Disk**.
-*   **Pool Size = 5 (Small classroom):** Requires **40 VCPUs**, **~60.5 GB RAM**, and **500 GB Disk**.
+*   **Pool Size = 1 (Current Default):** Requires **9 VCPUs**, **~14.1 GB RAM**, and **110 GB Disk**.
+*   **Pool Size = 2 (One additional sandbox):** Requires **18 VCPUs**, **~28.2 GB RAM**, and **220 GB Disk**.
+*   **Pool Size = 5 (Small classroom):** Requires **45 VCPUs**, **~70.5 GB RAM**, and **550 GB Disk**.
 
 > [!WARNING]
 > **OpenStack Instance ERROR State:** If your hypervisor host runs out of physical RAM, the OpenStack Nova scheduler will experience memory starvation. When allocating or scaling up a pool, newly spawned instances will fail to boot and enter the `ERROR` state with a generic `unexpected state 'ERROR', wanted target 'ACTIVE'` message.
