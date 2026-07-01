@@ -39,10 +39,11 @@ While the cyber range framework utilizes **emulation** for the guest hosts and n
 *How can realistic OT network topologies be effectively modeled and provisioned within CyberRangeCZ using native IaC?*
 
 ### Network Layout & Zones
-Our implementation maps virtual networks directly to Purdue Model levels:
-1.  **Purdue Level 3 (Operations/SCADA):** Deployed as `mgmt-net` (`10.10.10.0/24`) containing `attacker-host` (Kali Linux) and `scada-hmi` (Node-RED).
-2.  **Purdue Level 2 (Engineering):** Deployed as `operations-net` (`192.168.100.0/24`) containing `engineering-station` (vulnerable API server).
-3.  **Purdue Level 1 (Control/PLC):** Deployed as `control-net` (`192.168.20.0/24`) containing `openplc-node` (OpenPLC Modbus server).
+Our implementation maps virtual networks directly to Purdue Model levels and incorporates the modern Industrial DMZ (IDMZ) concept:
+1.  **Corporate Network (Level 4/5):** Deployed as `corporate-net` (`10.10.10.0/24`) containing the `attacker-host` (Kali Linux).
+2.  **Industrial DMZ (Level 3.5 IDMZ):** Deployed as `dmz-net` (`192.168.50.0/24`) containing `dmz-jump` (Debian SSH jump host).
+3.  **Operations Network (Level 3 SCADA):** Deployed as `operations-net` (`192.168.100.0/24`) containing `scada-hmi` (Node-RED dashboard).
+4.  **Control Network (Level 1/2 Control):** Deployed as `control-net` (`192.168.20.0/24`) containing `engineering-station` (Level 2 EWS) and `openplc-node` (Level 1 software PLC).
 
 ### Declarative Provisioning Configuration
 *   **Topologies:** The sandbox structure is declared in a single `topology.yml` matching network subnets and static IP maps to virtual ports inside OpenStack.
@@ -111,9 +112,9 @@ This design compromise highlights a fundamental conflict between **gamified trai
 ### A Realistic, SSH-Free Compromise (The Complex EWS Pivot Scenario)
 To resolve this design flaw and create a highly realistic training scenario, we developed the **`complex-operator-ot-sandbox`** variant. This architecture removes all shared SSH keys between the nodes and models a realistic pivot exploit chain mimicking historical breaches:
 
-*   **Purdue Network Segmentation:** We segmented the network into Corporate (`10.10.10.0/24`), Operations (`192.168.100.0/24`), and Control (`192.168.20.0/24`) zones using a gateway firewall router (`ot-gateway`).
-*   **SCADA HMI Compromise (Florida Oldsmar Hack):** The attacker compromises an exposed, unauthenticated Node-RED interface on the SCADA HMI (`192.168.100.10`). In addition to finding a local flag, the attacker discovers a plain-text credential backup file (`ews_credentials.txt`) stored by an operator on the SCADA host.
-*   **EWS Lateral Pivot (Ukraine Power Grid):** Using the stolen credentials (`operator` / `operator123`), the attacker SSHs into the Engineering Workstation (`192.168.20.20`) and scans the control network to discover the PLC IP (`192.168.20.10`).
+*   **Purdue Network Segmentation:** We segmented the network into Corporate (`10.10.10.0/24`), Industrial DMZ (`192.168.50.0/24`), Operations (`192.168.100.0/24`), and Control (`192.168.20.0/24`) zones using a gateway firewall router (`ot-gateway`).
+*   **SCADA HMI Compromise (Florida Oldsmar Hack):** The attacker first logs into the `dmz-jump` host via SSH (`operator` / `operator123`), establishes an SSH local port forward (`ssh -L 1880:192.168.100.10:1880`), and accesses Node-RED at `http://localhost:1880/`. They run command execution (RCE) on the SCADA HMI (`192.168.100.10`) to read the flag and discover a plain-text credential backup file (`ews_credentials.txt`) stored by an operator on the SCADA host.
+*   **EWS Lateral Pivot (Ukraine Power Grid):** Using the stolen credentials (`operator` / `operator123`), the attacker SSHs from the HMI into the Engineering Workstation (`192.168.20.20`) and scans the control network to discover the PLC IP (`192.168.20.10`).
 *   **Process Sabotage (Modbus Hijack):** From the EWS, the attacker uses the Modbus TCP client to directly write `0` to Holding Register 0 (Address 40001) on the PLC, shutting down a critical cooling pump. The EWS safety monitor captures this protocol change and writes `FLAG{PUMP_DISABLED_SUCCESS}` to `/var/log/safety_override.txt` to confirm the exploit without using any unrealistic operating system shell access on the PLC itself.
 
 ### Historical Context: Real-World OT Incident Mapping
