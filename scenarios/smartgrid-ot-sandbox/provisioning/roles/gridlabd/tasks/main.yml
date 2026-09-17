@@ -1,0 +1,55 @@
+---
+- name: Install dependencies for Python bridge and GridLAB-D physics engine
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - python3-requests
+      - git
+      - cmake
+      - g++
+      - autoconf
+      - libtool
+      - flex
+      - bison
+    state: present
+    update_cache: true
+
+- name: Install pymodbus via pip
+  pip:
+    name: pymodbus
+    executable: pip3
+    extra_args: --break-system-packages
+
+- name: Create directory for GridLAB-D model and bridge
+  file:
+    path: /opt/gridlabd
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy IEEE 13-Node GLM physics model
+  copy:
+    src: ieee13node.glm
+    dest: /opt/gridlabd/ieee13node.glm
+    mode: '0644'
+
+- name: Deploy Python Co-Simulation Bridge script
+  copy:
+    src: gridlabd_bridge.py
+    dest: /opt/gridlabd/gridlabd_bridge.py
+    mode: '0755'
+
+- name: Deploy GridLAB-D Bridge systemd service
+  copy:
+    src: gridlabd-bridge.service
+    dest: /etc/systemd/system/gridlabd-bridge.service
+    mode: '0644'
+
+- name: Enable and start GridLAB-D bridge service
+  systemd:
+    name: gridlabd-bridge
+    daemon_reload: true
+    state: restarted
+    enabled: true

@@ -1,0 +1,96 @@
+---
+# 1. Allow Corporate network to SSH (22) into DMZ Jump Host
+- name: Allow SSH from Corporate to DMZ Jump Host
+  iptables:
+    chain: FORWARD
+    source: 10.10.10.0/24
+    destination: 192.168.50.50
+    protocol: tcp
+    destination_port: "22"
+    jump: ACCEPT
+    action: insert
+
+# 2. Allow DMZ Jump Host to access SCADA HMI Node-RED (1880)
+- name: Allow Node-RED traffic from DMZ Jump Host to SCADA HMI
+  iptables:
+    chain: FORWARD
+    source: 192.168.50.50
+    destination: 192.168.100.10
+    protocol: tcp
+    destination_port: "1880"
+    jump: ACCEPT
+    action: insert
+
+# 3. Allow SCADA HMI to SSH (22) into EWS (simulates lateral movement capability)
+- name: Allow SSH traffic from SCADA HMI to Engineering Workstation
+  iptables:
+    chain: FORWARD
+    source: 192.168.100.10
+    destination: 192.168.20.20
+    protocol: tcp
+    destination_port: "22"
+    jump: ACCEPT
+    action: insert
+
+# 4. Allow EWS to communicate with PLC via Modbus TCP (502)
+- name: Allow Modbus TCP traffic from Engineering Workstation to OpenPLC
+  iptables:
+    chain: FORWARD
+    source: 192.168.20.20
+    destination: 192.168.20.10
+    protocol: tcp
+    destination_port: "502"
+    jump: ACCEPT
+    action: insert
+
+# 5. Drop direct traffic from Corporate to SCADA HMI (enforce IDMZ)
+- name: Drop all direct traffic from Corporate to SCADA HMI
+  iptables:
+    chain: FORWARD
+    source: 10.10.10.0/24
+    destination: 192.168.100.10
+    jump: DROP
+    action: insert
+
+# 6. Drop direct traffic from Corporate to EWS and PLC
+- name: Drop all direct traffic from Corporate to EWS
+  iptables:
+    chain: FORWARD
+    source: 10.10.10.0/24
+    destination: 192.168.20.20
+    jump: DROP
+    action: insert
+
+- name: Drop all direct traffic from Corporate to PLC
+  iptables:
+    chain: FORWARD
+    source: 10.10.10.0/24
+    destination: 192.168.20.10
+    jump: DROP
+    action: insert
+
+# 7. Drop direct traffic from DMZ Jump Host to Control Subnet (EWS and PLC)
+- name: Drop all direct traffic from DMZ to EWS
+  iptables:
+    chain: FORWARD
+    source: 192.168.50.0/24
+    destination: 192.168.20.20
+    jump: DROP
+    action: insert
+
+- name: Drop all direct traffic from DMZ to PLC
+  iptables:
+    chain: FORWARD
+    source: 192.168.50.0/24
+    destination: 192.168.20.10
+    jump: DROP
+    action: insert
+
+# 8. Drop direct traffic from SCADA HMI to PLC (prevent bypassing EWS control)
+- name: Drop all direct traffic from SCADA HMI to PLC
+  iptables:
+    chain: FORWARD
+    source: 192.168.100.10
+    destination: 192.168.20.10
+    jump: DROP
+    action: insert

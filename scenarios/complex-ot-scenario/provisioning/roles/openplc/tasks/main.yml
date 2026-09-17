@@ -1,0 +1,48 @@
+---
+- name: Install dependencies for compiling OpenPLC
+  apt:
+    name: [git, autoconf, libtool, make, g++, sqlite3, libsqlite3-dev, python3-pip]
+    state: present
+    update_cache: true
+
+- name: Clone OpenPLC V3 repository
+  git:
+    repo: 'https://github.com/thiagoralves/OpenPLC_v3.git'
+    dest: /opt/OpenPLC_v3
+    version: master
+
+- name: Run OpenPLC installer (non-interactive)
+  shell: ./install.sh linux
+  args:
+    chdir: /opt/OpenPLC_v3
+    creates: /opt/OpenPLC_v3/start_openplc.sh
+
+- name: Configure OpenPLC systemd service
+  copy:
+    dest: /etc/systemd/system/openplc.service
+    content: |
+      [Unit]
+      Description=OpenPLC Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      WorkingDirectory=/opt/OpenPLC_v3
+      ExecStart=/opt/OpenPLC_v3/start_openplc.sh
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Enable Modbus TCP on OpenPLC
+  command: sqlite3 /opt/OpenPLC_v3/webserver/openplc.db "UPDATE settings SET value = '502' WHERE key = 'Modbus_port';"
+
+- name: Configure OpenPLC to start run mode automatically
+  command: sqlite3 /opt/OpenPLC_v3/webserver/openplc.db "UPDATE settings SET value = 'true' WHERE key = 'Start_run_mode';"
+
+- name: Reload systemd and start OpenPLC
+  systemd:
+    name: openplc
+    daemon_reload: true
+    state: restarted
+    enabled: true

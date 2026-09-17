@@ -1,0 +1,89 @@
+// GridLAB-D IEEE 13-Node Test Feeder Model
+// Modified for Co-Simulation with OpenPLC Substation Protection
+
+#set stoptime='2026-07-22 00:00:00'
+#set starttime='2026-07-21 00:00:00'
+#set pauseat='2026-07-21 00:01:00'
+
+module powerflow {
+    solver_method FBS;
+};
+module climate;
+module tape;
+
+clock {
+    timezone EST5EDT;
+    starttime '2026-07-21 00:00:00';
+    stoptime '2026-07-22 00:00:00';
+}
+
+object line_configuration {
+    name line_config_601;
+    conductor_A overhead_line_conductor_1;
+    conductor_B overhead_line_conductor_1;
+    conductor_C overhead_line_conductor_1;
+    conductor_N overhead_line_conductor_2;
+    spacing line_spacing_500;
+}
+
+object overhead_line_conductor {
+    name overhead_line_conductor_1;
+    rating.summer.continuous 400 A;
+    geometric_mean_radius 0.004460 ft;
+    resistance 0.306000 Ohm/mile;
+}
+
+object overhead_line_conductor {
+    name overhead_line_conductor_2;
+    rating.summer.continuous 200 A;
+    geometric_mean_radius 0.004460 ft;
+    resistance 0.592000 Ohm/mile;
+}
+
+object line_spacing {
+    name line_spacing_500;
+    distance_AB 2.5 ft;
+    distance_BC 4.5 ft;
+    distance_AC 7.0 ft;
+    distance_AN 5.656854 ft;
+    distance_BN 4.272002 ft;
+    distance_CN 5.0 ft;
+}
+
+object node {
+    name bus_650;
+    phases ABCN;
+    bustype SWING;
+    nominal_voltage 2400.0;
+}
+
+object node {
+    name bus_632;
+    phases ABCN;
+    nominal_voltage 2400.0;
+}
+
+object overhead_line {
+    name line_650_632;
+    phases ABCN;
+    from bus_650;
+    to bus_632;
+    length 2000 ft;
+    configuration line_config_601;
+}
+
+object load {
+    name load_671;
+    phases ABCN;
+    nominal_voltage 2400.0;
+    constant_power_A 1150000+530000j;
+    constant_power_B 1150000+530000j;
+    constant_power_C 1150000+530000j;
+}
+
+object recorder {
+    parent bus_632;
+    property voltage_A,voltage_B,voltage_C;
+    interval 1;
+    file bus_632_voltage.csv;
+}

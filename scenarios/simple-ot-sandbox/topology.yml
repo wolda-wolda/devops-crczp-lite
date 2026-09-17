@@ -1,0 +1,67 @@
+name: simple-ot-sandbox
+
+hosts:
+  # 1. Attacker workstation (runs Kali GUI)
+  - name: attacker-host
+    base_box:
+      image: kali
+      mgmt_user: debian
+    flavor: kali
+
+  # 2. SCADA/HMI server (runs Node-RED)
+  - name: scada-hmi
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.hmi
+
+  # 3. Software PLC (runs OpenPLC)
+  - name: openplc-node
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.plc
+
+routers:
+  - name: ot-router
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.router
+
+networks:
+  - name: mgmt-net
+    cidr: 10.10.10.0/24
+  - name: ot-net
+    cidr: 192.168.99.0/24
+
+net_mappings:
+  - host: attacker-host
+    network: mgmt-net
+    ip: 10.10.10.50
+
+  - host: scada-hmi
+    network: mgmt-net
+    ip: 10.10.10.10
+
+  - host: openplc-node
+    network: ot-net
+    ip: 192.168.99.10
+
+router_mappings:
+  - router: ot-router
+    network: mgmt-net
+    ip: 10.10.10.1
+
+  - router: ot-router
+    network: ot-net
+    ip: 192.168.99.1
+
+groups:
+  - name: ot-group
+    nodes:
+      - attacker-host
+      - scada-hmi
+      - openplc-node
+
+

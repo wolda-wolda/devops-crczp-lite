@@ -124,6 +124,20 @@ configure_globals() {
     log_success "Globals configuration completed"
 }
 
+# Configure custom service overrides
+configure_overrides() {
+    log "Configuring custom Kolla service overrides..."
+
+    safe_mkdir "/etc/kolla/config"
+
+    # Create nova.conf override for disk overcommit ratio (needed for nested virtualization)
+    cat <<EOF > "/etc/kolla/config/nova.conf"
+[DEFAULT]
+disk_allocation_ratio = 3.0
+EOF
+    log_success "Kolla service overrides configuration completed"
+}
+
 # Deploy OpenStack
 deploy_openstack() {
     log "Starting OpenStack deployment with Kolla-Ansible..."
@@ -251,6 +265,7 @@ main() {
     install_kolla_ansible
     configure_kolla_ansible
     configure_globals
+    configure_overrides
     deploy_openstack
 
     # Deactivate virtual environment before client setup

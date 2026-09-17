@@ -1,0 +1,69 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "title": "Substation Bus 632 RMS Voltage (V)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb_smartgrid"
+          },
+          "query": "SELECT mean(\"voltage\") FROM \"substation_telemetry\" WHERE $timeFilter GROUP BY time($__interval) fill(null)",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 2,
+      "title": "Feeder Circuit Breaker Status (1=Closed, 0=Tripped)",
+      "type": "stat",
+      "targets": [
+        {
+          "datasource": {
+            "type": "influxdb",
+            "uid": "influxdb_smartgrid"
+          },
+          "query": "SELECT last(\"breaker_closed\") FROM \"substation_telemetry\"",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["smartgrid", "scada", "kypo"],
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "title": "Smart Grid Substation Monitoring Dashboard",
+  "uid": "smartgrid_scada_v1"
+}

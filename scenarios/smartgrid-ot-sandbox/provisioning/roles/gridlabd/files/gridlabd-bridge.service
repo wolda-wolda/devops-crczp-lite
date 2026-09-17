@@ -1,0 +1,12 @@
+[Unit]
+Description=GridLAB-D Co-Simulation Bridge Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/gridlabd/gridlabd_bridge.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

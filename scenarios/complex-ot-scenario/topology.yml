@@ -1,0 +1,74 @@
+name: complex-operator-ot-sandbox
+
+hosts:
+  - name: attacker-host
+    base_box: { image: kali, mgmt_user: debian }
+    flavor: kali
+
+  - name: dmz-jump
+    base_box: { image: debian-12-x86_64, mgmt_user: debian }
+    flavor: ot.jump
+
+  - name: scada-hmi
+    base_box: { image: debian-12-x86_64, mgmt_user: debian }
+    flavor: ot.hmi
+
+  - name: engineering-station
+    base_box: { image: debian-12-x86_64, mgmt_user: debian }
+    flavor: ot.ews
+
+  - name: openplc-node
+    base_box: { image: debian-12-x86_64, mgmt_user: debian }
+    flavor: ot.plc
+
+routers:
+  - name: ot-gateway
+    base_box: { image: debian-12-x86_64, mgmt_user: debian }
+    flavor: ot.router
+
+networks:
+  - name: corporate-net
+    cidr: 10.10.10.0/24
+  - name: dmz-net
+    cidr: 192.168.50.0/24
+  - name: operations-net
+    cidr: 192.168.100.0/24
+  - name: control-net
+    cidr: 192.168.20.0/24
+
+net_mappings:
+  - host: attacker-host
+    network: corporate-net
+    ip: 10.10.10.50
+
+  - host: dmz-jump
+    network: dmz-net
+    ip: 192.168.50.50
+
+  - host: scada-hmi
+    network: operations-net
+    ip: 192.168.100.10
+
+  - host: engineering-station
+    network: control-net
+    ip: 192.168.20.20
+
+  - host: openplc-node
+    network: control-net
+    ip: 192.168.20.10
+
+router_mappings:
+  - router: ot-gateway
+    network: corporate-net
+    ip: 10.10.10.1
+  - router: ot-gateway
+    network: dmz-net
+    ip: 192.168.50.1
+  - router: ot-gateway
+    network: operations-net
+    ip: 192.168.100.1
+  - router: ot-gateway
+    network: control-net
+    ip: 192.168.20.1
+
+groups: []

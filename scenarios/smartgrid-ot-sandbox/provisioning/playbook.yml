@@ -1,0 +1,67 @@
+- name: Configure the Purdue Gateway Router
+  hosts: purdue-gateway
+  become: true
+  roles:
+    - router
+
+- name: Configure the Level 0 Physics Engine & Co-Simulation Bridge
+  hosts: gridlabd-physics
+  become: true
+  roles:
+    - gridlabd
+
+- name: Configure the Level 2/1 Substation OpenPLC Nodes
+  hosts:
+    - substation-plc1
+    - substation-plc2
+  become: true
+  roles:
+    - openplc
+
+- name: Configure Level 3 SCADA Control Room & HMI
+  hosts: scada-hmi
+  become: true
+  roles:
+    - scada
+
+- name: Configure Level 3.5 IDMZ Jump Host
+  hosts: idmz-jump
+  become: true
+  tasks:
+    - name: Ensure operator user exists
+      user:
+        name: operator
+        password: "{{ 'operator123' | password_hash('sha512') }}"
+        shell: /bin/bash
+    - name: Install nmap
+      apt:
+        name: nmap
+        state: present
+        update_cache: true
+    - name: Ensure SSH PasswordAuthentication is enabled in sshd_config
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication yes'
+
+    - name: Ensure SSH PasswordAuthentication is enabled in sshd_config.d configs
+      shell: "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/*.conf 2>/dev/null || true"
+
+    - name: Restart SSH service
+      systemd:
+        name: ssh
+        state: restarted
+
+    - name: Deploy flag file to operator home
+      copy:
+        dest: /home/operator/flag.txt
+        content: "FLAG{IDMZ_JUMP_PIVOT_ESTABLISHED}\n"
+        owner: operator
+        group: operator
+        mode: '0644'
+
+- name: Configure Attacker Workstation
+  hosts: attacker-host
+  become: true
+  roles:
+    - attacker

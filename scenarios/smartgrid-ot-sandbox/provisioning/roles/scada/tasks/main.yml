@@ -1,0 +1,214 @@
+---
+- name: Install dependencies for Node-RED and SCADA tools
+  apt:
+    name:
+      - python3
+      - python3-pip
+      - nodejs
+      - npm
+      - apt-transport-https
+      - software-properties-common
+      - wget
+      - curl
+      - influxdb
+      - influxdb-client
+    state: present
+    update_cache: true
+
+- name: Install pymodbus via pip
+  pip:
+    name: pymodbus
+    executable: pip3
+    extra_args: --break-system-packages
+  ignore_errors: true
+
+- name: Enable and start InfluxDB service
+  systemd:
+    name: influxdb
+    state: started
+    enabled: true
+  ignore_errors: true
+
+- name: Create smartgrid database in InfluxDB
+  command: influx -execute "CREATE DATABASE smartgrid"
+  ignore_errors: true
+
+- name: Install Node-RED globally
+  npm:
+    name: node-red
+    version: '3.1.15'
+    global: true
+    state: present
+
+- name: Ensure Node-RED configuration directory exists
+  file:
+    path: /root/.node-red
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure Node-RED settings to listen on all interfaces and set flowFile
+  copy:
+    dest: /root/.node-red/settings.js
+    content: |
+      module.exports = {
+          uiHost: "0.0.0.0",
+          flowFile: "flows.json"
+      };
+    mode: '0644'
+
+- name: Install Modbus node inside Node-RED user directory
+  npm:
+    name: node-red-contrib-modbus
+    version: '5.43.0'
+    path: /root/.node-red
+    state: present
+
+- name: Deploy Node-RED SCADA flow configuration
+  copy:
+    src: node_red_flows.json
+    dest: /root/.node-red/flows.json
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy Node-RED SCADA flow fallback configuration
+  copy:
+    src: node_red_flows.json
+    dest: /root/.node-red/flows_scada-hmi.json
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create SCADA flag file
+  copy:
+    dest: /root/flag.txt
+    content: |
+      FLAG{SCADA_HMI_MONITORING_COMPROMISED}
+    mode: '0600'
+
+- name: Create systemd unit file for Node-RED
+  copy:
+    dest: /etc/systemd/system/nodered.service
+    content: |
+      [Unit]
+      Description=Node-RED SCADA Flow Editor
+      After=syslog.target network.target
+
+      [Service]
+      Type=simple
+      User=root
+      Group=root
+      WorkingDirectory=/root
+      Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+      ExecStart=/usr/bin/env node-red
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: '0644'
+
+- name: Start and enable Node-RED service
+  systemd:
+    name: nodered
+    daemon_reload: true
+    state: restarted
+    enabled: true
+
+- name: Create keyring directory for Grafana
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: '0755'
+
+- name: Add Grafana GPG key
+  get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.key
+    mode: '0644'
+
+- name: Add Grafana APT repository
+  apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/grafana.key] https://apt.grafana.com stable main"
+    state: present
+    filename: grafana
+
+- name: Install Grafana package
+  apt:
+    name:
+      - grafana
+    state: present
+    update_cache: true
+
+- name: Configure Grafana dashboard provisioning directory
+  file:
+    path: /etc/grafana/provisioning/dashboards
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Configure Grafana datasources provisioning directory
+  file:
+    path: /etc/grafana/provisioning/datasources
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Deploy Grafana InfluxDB datasource definition
+  copy:
+    dest: /etc/grafana/provisioning/datasources/datasource.yaml
+    content: |
+      apiVersion: 1
+      datasources:
+        - name: InfluxDB
+          type: influxdb
+          access: proxy
+          url: http://localhost:8086
+          database: smartgrid
+          isDefault: true
+          uid: influxdb_smartgrid
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy Grafana smart grid dashboard definition
+  copy:
+    src: grafana_dashboard.json
+    dest: /etc/grafana/provisioning/dashboards/grafana_dashboard.json
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Deploy Grafana dashboard provider definition
+  copy:
+    dest: /etc/grafana/provisioning/dashboards/dashboard.yaml
+    content: |
+      apiVersion: 1
+      providers:
+        - name: 'SmartGrid Dashboards'
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 5
+          options:
+            path: /etc/grafana/provisioning/dashboards/grafana_dashboard.json
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Enable anonymous access in grafana.ini
+  ini_file:
+    path: /etc/grafana/grafana.ini
+    section: auth.anonymous
+    option: enabled
+    value: 'true'
+
+- name: Start and enable Grafana server
+  systemd:
+    name: grafana-server
+    state: restarted
+    enabled: true

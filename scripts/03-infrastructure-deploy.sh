@@ -234,6 +234,35 @@ setup_head_services_variables() {
     export TF_VAR_os_region="RegionOne"
     export TF_VAR_proxy_host="$proxy_host"
     export TF_VAR_proxy_key="$proxy_key"
+    
+    # Configure Git Token from environment to avoid hardcoding secrets in Git
+    if [ -n "${GITHUB_PAT:-}" ]; then
+        # Dynamically extract default git_config values from variables.tf to avoid hardcoding them here
+        local git_config_defaults
+        git_config_defaults=$(python3 -c "
+import re
+with open('/root/devops-tf-deployment/tf-head-services/variables.tf', 'r') as f:
+    content = f.read()
+
+var_match = re.search(r'variable\s*\"git_config\"\s*{(.*)', content, re.DOTALL)
+if var_match:
+    var_content = var_match.group(1)
+    def_match = re.search(r'default\s*=\s*{(.*)', var_content, re.DOTALL)
+    if def_match:
+        def_content = def_match.group(1)
+        user_match = re.search(r'user\s*=\s*\"([^\"]+)\"', def_content)
+        url_match = re.search(r'ansibleNetworkingUrl\s*=\s*\"([^\"]+)\"', def_content)
+        rev_match = re.search(r'ansibleNetworkingRev\s*=\s*\"([^\"]+)\"', def_content)
+        user = user_match.group(1) if user_match else 'git'
+        url = url_match.group(1) if url_match else 'https://github.com/cyberrangecz/ansible-stage-one.git'
+        rev = rev_match.group(1) if rev_match else 'v1.7.0'
+        print(f'user=\\\"{user}\\\",ansibleNetworkingUrl=\\\"{url}\\\",ansibleNetworkingRev=\\\"{rev}\\\"')
+")
+        export TF_VAR_git_config="{providers={\"https://github.com/\"=\"$GITHUB_PAT\"},$git_config_defaults}"
+    else
+        log_warning "GITHUB_PAT environment variable is not set. The platform will use unauthenticated GitHub requests and might hit API rate limits."
+    fi
+
 
     # Configure users
     export TF_VAR_users="{\"crczp-admin\"={iss=\"https://$head_host/keycloak/realms/CRCZP\",keycloakUsername=\"crczp-admin\",keycloakPassword=\"password\",email=\"crczp-admin@example.com\",fullName=\"Demo Admin\",givenName=\"Demo\",familyName=\"Admin\",admin=true}}"
@@ -276,14 +305,22 @@ deploy_head_services() {
     if [ -f values.yaml ]; then
         if ! grep -q "$DNS1" values.yaml; then
             log "Updating DNS settings in values.yaml..."
-            sed -i -e "s/1.1.1.1/$DNS1/" -e "s/1.0.0.1/$DNS2/" values.yaml
+            sed -i -e "s/8.8.8.8/$DNS1/" -e "s/1.1.1.1/$DNS2/" values.yaml
             log "Updated DNS settings in values.yaml"
         else
             log "DNS settings already configured in values.yaml"
         fi
+
+        # Update OpenStack console type to novnc
+        if grep -q "osConsoleType: spice-html5" values.yaml; then
+            log "Updating OpenStack console type to novnc in values.yaml..."
+            sed -i 's/osConsoleType: spice-html5/osConsoleType: novnc/g' values.yaml
+            log "Updated console type settings in values.yaml"
+        fi
     else
         log_warning "values.yaml not found, continuing without DNS updates"
     fi
+
 
     # Check if Terraform is already initialized
     if [ ! -d ".terraform" ]; then

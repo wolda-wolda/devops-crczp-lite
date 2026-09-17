@@ -1,0 +1,39 @@
+    default: ========================================
+    default:  DEPLOYMENT COMPLETED SUCCESSFULLY!
+    default: ========================================
+    default: 
+    default:  Web Interface:
+    default:    URL: https://10.1.2.175/
+    default: 
+    default:  Default Login Credentials:
+    default:    Username: crczp-admin
+    default:    Password: password
+    default: 
+    default:  Monitoring (Grafana):
+    default:    Admin Password: a9rtSL4irgs4sQjJ8EuN
+    default: 
+    default:  Keycloak Admin:
+    default:    Admin Password: verpcJPborLbgl8aH3n2
+    default: 
+    default:  Training Libraries to Import:
+    default:    Repository URLs to add in the web interface:
+    default: 
+    default:    • Demo Training:
+    default:      https://github.com/cyberrangecz/library-demo-training.git
+    default: 
+    default:    • Demo Training (Adaptive):
+    default:      https://github.com/cyberrangecz/library-demo-training-adaptive.git
+    default: 
+    default:    • Junior Hacker:
+    default:      https://github.com/cyberrangecz/library-junior-hacker.git
+    default: 
+    default:    • Junior Hacker (Adaptive):
+    default:      https://github.com/cyberrangecz/library-junior-hacker-adaptive.git
+    default: 
+    default:    • Locust 3302:
+    default:      https://github.com/cyberrangecz/library-locust-3302.git
+    default: 
+    default:    • Secret Laboratory:
+    default:      https://github.com/cyberrangecz/library-secret-laboratory.git
+    default: 
+There are some problems with the provider_installation configuration:╷│ Error: Invalid provider source exclusion patterns││ CLI config specifies invalid provider exclusion patterns: invalid provider│ matching pattern "*": must have either two or three slash-separated│ segments.╵As a result of the above problems, OpenTofu's provider installer may not behave as intended.Error: Error creating OpenStack server: Expected HTTP response code [200 202] when accessing [POST http://10.1.2.9:8774/v2.1/servers], but got 400 instead: {"badRequest": {"code": 400, "message": "Flavor's disk is too small for requested image. Flavor disk is 17179869184 bytes, image is 18201378816 bytes."}}  with openstack_compute_instance_v2.default-p0000000002-s0000000003-attacker-host,  on deploy.tf line 316, in resource "openstack_compute_instance_v2" "default-p0000000002-s0000000003-attacker-host": 316: resource "openstack_compute_instance_v2" "default-p0000000002-s0000000003-attacker-host" {

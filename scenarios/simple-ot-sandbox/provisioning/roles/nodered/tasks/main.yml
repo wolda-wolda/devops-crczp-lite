@@ -1,0 +1,69 @@
+---
+- name: Install Node.js and npm
+  apt:
+    name:
+      - nodejs
+      - npm
+    state: present
+    update_cache: true
+
+- name: Install Node-RED globally
+  npm:
+    name: node-red
+    version: '3.1.15'
+    global: yes
+    state: present
+
+- name: Ensure Node-RED user directory exists
+  file:
+    path: /root/.node-red
+    state: directory
+    mode: '0755'
+
+- name: Configure Node-RED settings
+  copy:
+    dest: /root/.node-red/settings.js
+    content: |
+      module.exports = {
+          uiHost: "0.0.0.0"
+      };
+    mode: '0644'
+
+- name: Create systemd unit file for Node-RED
+  copy:
+    dest: /etc/systemd/system/nodered.service
+    content: |
+      [Unit]
+      Description=Node-RED Graphical Flow-builder
+      After=syslog.target network.target
+
+      [Service]
+      Type=simple
+      User=root
+      Group=root
+      WorkingDirectory=/root
+      ExecStart=/usr/bin/env node-red
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Start and enable Node-RED service
+  systemd:
+    name: nodered
+    daemon_reload: true
+    state: started
+    enabled: true
+
+- name: Install Modbus node inside Node-RED user directory
+  npm:
+    name: node-red-contrib-modbus
+    path: /root/.node-red
+    state: present
+
+- name: Create SCADA flag file
+  copy:
+    dest: /root/flag.txt
+    content: |
+      FLAG{SCADA_EXPLOITED_RCE}
+    mode: '0600'

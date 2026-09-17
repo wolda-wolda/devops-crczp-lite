@@ -1,0 +1,114 @@
+---
+- name: Install OT engineering tools (living off the land)
+  apt:
+    name:
+      - python3-pip
+      - nmap
+    state: present
+    update_cache: true
+
+- name: Install Modbus CLI via pip (simulates EWS software)
+  pip:
+    name: modbus_cli==0.1.6
+    executable: pip3
+    extra_args: --break-system-packages
+
+- name: Create engineer user group
+  group:
+    name: engineer
+    state: present
+
+- name: Create engineer user with unique credentials
+  user:
+    name: engineer
+    group: engineer
+    password: "$6$VGWXvtcxZEhUaOjl$LhcDPDbW4ywoyctgSUUS5qBHOhsxNqm6dlL/hFyzCb9wGjBe.f5gNYc4cY7NjSUk1Wzmf.X7cIHT19TQ.h4Va1"
+    shell: /bin/bash
+    home: /home/engineer
+    create_home: yes
+
+- name: Ensure SSH is enabled and allows password authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication'
+    line: 'PasswordAuthentication yes'
+
+- name: restart ssh
+  systemd:
+    name: ssh
+    state: restarted
+
+- name: Install pymodbus via pip for safety monitor script
+  pip:
+    name: pymodbus==3.6.8
+    executable: pip3
+    extra_args: --break-system-packages
+
+- name: Ensure safety override flag file is absent initially
+  file:
+    path: /var/log/safety_override.txt
+    state: absent
+
+- name: Deploy safety monitor Python script
+  copy:
+    dest: /opt/safety_monitor.py
+    content: |
+      import time
+      try:
+          from pymodbus.client.sync import ModbusTcpClient
+      except ImportError:
+          from pymodbus.client import ModbusTcpClient
+
+      def main():
+          client = ModbusTcpClient('192.168.20.10', port=502)
+          initialized = False
+          while True:
+              try:
+                  if not client.connected:
+                      client.connect()
+
+                  # Initialize Register 0 to 1 (Pump ON / Normal Operation) on startup
+                  if not initialized and client.connected:
+                      client.write_register(0, 1)
+                      initialized = True
+                      time.sleep(1)
+                      continue
+
+                  result = client.read_holding_registers(address=0, count=1)
+                  if not result.isError():
+                      value = result.registers[0]
+                      if value == 0 and initialized:
+                          with open('/var/log/safety_override.txt', 'w') as f:
+                              f.write('FLAG{PUMP_DISABLED_SUCCESS}\n')
+                          while True:
+                              time.sleep(3600)
+              except Exception:
+                  pass
+              time.sleep(1)
+
+      if __name__ == '__main__':
+          main()
+    mode: '0755'
+
+- name: Deploy safety monitor systemd unit file
+  copy:
+    dest: /etc/systemd/system/safety-monitor.service
+    content: |
+      [Unit]
+      Description=OT Safety Override Monitor
+      After=network.target
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/bin/python3 /opt/safety_monitor.py
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Enable and start safety monitor service
+  systemd:
+    name: safety-monitor
+    daemon_reload: true
+    state: restarted
+    enabled: true

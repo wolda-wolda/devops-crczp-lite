@@ -1,0 +1,94 @@
+- name: Configure the Gateway Router
+  hosts: ot-gateway
+  become: true
+  roles:
+    - router
+
+- name: Configure the SCADA/HMI Node
+  hosts: scada-hmi
+  become: true
+  roles:
+    - nodered
+
+- name: Configure the IDMZ Jump Host
+  hosts: dmz-jump
+  become: true
+  roles:
+    - dmz
+
+- name: Configure the Engineering Workstation
+  hosts: engineering-station
+  become: true
+  roles:
+    - ews
+
+- name: Configure the Software PLC Node
+  hosts: openplc-node
+  become: true
+  roles:
+    - openplc
+
+- name: Configure the Attacker Workstation
+  hosts: attacker-host
+  become: true
+  tasks:
+    - name: Deploy password dictionary to debian home
+      copy:
+        dest: /home/debian/passlist.txt
+        content: |
+          password
+          123456
+          admin
+          password123
+          operator
+          operator123
+          letmein
+          oracle
+          engineer
+          engineer123
+          bacon
+        owner: debian
+        group: debian
+        mode: '0644'
+
+    - name: Deploy password dictionary to root home
+      copy:
+        dest: /root/passlist.txt
+        content: |
+          password
+          123456
+          admin
+          password123
+          operator
+          operator123
+          letmein
+          oracle
+          engineer
+          engineer123
+          bacon
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Check if /home/kali exists
+      stat:
+        path: /home/kali
+      register: kali_home
+
+    - name: Deploy password dictionary to kali home
+      copy:
+        dest: /home/kali/passlist.txt
+        content: |
+          password
+          123456
+          admin
+          password123
+          operator
+          operator123
+          letmein
+          oracle
+          engineer
+          engineer123
+          bacon
+        mode: '0644'
+      when: kali_home.stat.exists

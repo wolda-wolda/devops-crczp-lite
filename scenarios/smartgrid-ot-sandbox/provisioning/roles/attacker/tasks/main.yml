@@ -1,0 +1,66 @@
+---
+- name: Deploy password list dictionary to debian home
+  copy:
+    dest: /home/debian/passlist.txt
+    content: |
+      password
+      123456
+      admin
+      operator
+      operator123
+      engineer
+      engineer123
+      letmein
+    owner: debian
+    group: debian
+    mode: '0644'
+  ignore_errors: true
+
+- name: Deploy password list dictionary to root home
+  copy:
+    dest: /root/passlist.txt
+    content: |
+      password
+      123456
+      admin
+      operator
+      operator123
+      engineer
+      engineer123
+      letmein
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Check if /home/kali directory exists
+  stat:
+    path: /home/kali
+  register: kali_home
+
+- name: Deploy password list dictionary to kali home
+  copy:
+    dest: /home/kali/passlist.txt
+    content: |
+      password
+      123456
+      admin
+      operator
+      operator123
+      engineer
+      engineer123
+      letmein
+    mode: '0644'
+  when: kali_home.stat.exists
+
+- name: Install pymodbus via pip
+  pip:
+    name: pymodbus
+    executable: pip3
+    extra_args: --break-system-packages
+
+- name: Deploy Modbus attack tool script to kali home
+  copy:
+    src: modbus_attack.py
+    dest: /home/kali/modbus_attack.py
+    mode: '0755'
+  when: kali_home.stat.exists

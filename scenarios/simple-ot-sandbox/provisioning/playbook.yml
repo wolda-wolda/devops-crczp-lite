@@ -1,0 +1,17 @@
+- name: Configure the Gateway Router
+  hosts: ot-router
+  become: true
+  roles:
+    - router
+
+- name: Configure the Software PLC Node
+  hosts: openplc-node
+  become: true
+  roles:
+    - openplc
+
+- name: Configure the SCADA/HMI Node
+  hosts: scada-hmi
+  become: true
+  roles:
+    - nodered

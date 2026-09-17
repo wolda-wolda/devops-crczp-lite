@@ -1,0 +1,45 @@
+---
+- name: Install networking tools on DMZ jump host
+  apt:
+    name:
+      - nmap
+      - tcpdump
+      - netcat-openbsd
+    state: present
+    update_cache: true
+
+- name: Create operator user group
+  group:
+    name: operator
+    state: present
+
+- name: Create operator user with operator123 password
+  user:
+    name: operator
+    group: operator
+    password: "$6$IQBxuzI0FCQdu5gU$NIohLB40Hwc7Uclsu9bIIMtOTRIPTLC1Bw39cwboypppwcpb1rNwXrS8up/SWB5056dSEuLZSZEW0CxMR5Pej0"
+    shell: /bin/bash
+    home: /home/operator
+    create_home: true
+
+- name: Configure SSH to allow password authentication in sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^#?PasswordAuthentication'
+    line: 'PasswordAuthentication yes'
+
+- name: Ensure SSH PasswordAuthentication is enabled in sshd_config.d configs
+  shell: "sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config.d/*.conf 2>/dev/null || true"
+
+- name: Restart SSH service
+  systemd:
+    name: ssh
+    state: restarted
+
+- name: Deploy Level 2 Flag file
+  copy:
+    dest: /home/operator/flag.txt
+    content: "FLAG{IDMZ_JUMP_ACCESSED}\n"
+    owner: operator
+    group: operator
+    mode: '0644'

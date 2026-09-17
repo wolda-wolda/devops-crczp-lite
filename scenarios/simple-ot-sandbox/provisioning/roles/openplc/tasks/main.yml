@@ -1,0 +1,117 @@
+---
+- name: Install dependencies for compiling OpenPLC
+  apt:
+    name:
+      - git
+      - autoconf
+      - libtool
+      - make
+      - g++
+      - sqlite3
+      - libsqlite3-dev
+      - python3-pip
+    state: present
+    update_cache: true
+
+- name: Clone OpenPLC V3 repository
+  git:
+    repo: 'https://github.com/thiagoralves/OpenPLC_v3.git'
+    dest: /opt/OpenPLC_v3
+    version: master
+
+- name: Run OpenPLC installer (non-interactive)
+  shell: ./install.sh linux
+  args:
+    chdir: /opt/OpenPLC_v3
+    creates: /opt/OpenPLC_v3/start_openplc.sh
+
+- name: Build systemd service unit file for OpenPLC
+  copy:
+    dest: /etc/systemd/system/openplc.service
+    content: |
+      [Unit]
+      Description=OpenPLC Service
+      After=network.target
+
+      [Service]
+      Type=simple
+      WorkingDirectory=/opt/OpenPLC_v3
+      ExecStart=/opt/OpenPLC_v3/start_openplc.sh
+      Restart=always
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Configure OpenPLC to start run mode automatically
+  command: sqlite3 /opt/OpenPLC_v3/webserver/openplc.db "UPDATE settings SET value = 'true' WHERE key = 'Start_run_mode';"
+
+- name: Reload systemd, enable, and start OpenPLC
+  systemd:
+    name: openplc
+    daemon_reload: true
+    state: restarted
+    enabled: true
+
+- name: Create simulation monitor Python script
+  copy:
+    dest: /opt/simulation_monitor.py
+    content: |
+      import socket
+      import time
+      import os
+
+      READ_REQ = b'\x00\x01\x00\x00\x00\x06\x01\x03\x00\x00\x00\x01'
+
+      def check_register():
+          try:
+              s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+              s.settimeout(2.0)
+              s.connect(('127.0.0.1', 502))
+              s.sendall(READ_REQ)
+              resp = s.recv(1024)
+              s.close()
+              
+              if len(resp) >= 11 and resp[7] == 3:
+                  val = (resp[9] << 8) | resp[10]
+                  return val
+          except Exception as e:
+              pass
+          return None
+
+      def main():
+          while True:
+              val = check_register()
+              if val == 9999:
+                  with open('/root/flag2.txt', 'w') as f:
+                      f.write('FLAG{OT_SABOTAGE_SUCCESS}\n')
+                  os.chmod('/root/flag2.txt', 0o600)
+                  break
+              time.sleep(1.0)
+
+      if __name__ == '__main__':
+          main()
+    mode: '0755'
+
+- name: Create systemd unit file for simulation monitor
+  copy:
+    dest: /etc/systemd/system/simulation-monitor.service
+    content: |
+      [Unit]
+      Description=Simulation Monitor for OT Sabotage
+      After=openplc.service
+
+      [Service]
+      Type=simple
+      ExecStart=/usr/bin/python3 /opt/simulation_monitor.py
+      Restart=always
+      User=root
+
+      [Install]
+      WantedBy=multi-user.target
+
+- name: Reload systemd, enable, and start simulation-monitor
+  systemd:
+    name: simulation-monitor
+    daemon_reload: true
+    state: started
+    enabled: true

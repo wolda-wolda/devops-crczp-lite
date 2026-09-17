@@ -1,0 +1,20 @@
+---
+- name: Drop direct Modbus TCP (502) forwarding from attacker to OpenPLC
+  iptables:
+    chain: FORWARD
+    source: 10.10.10.50
+    destination: 192.168.99.10
+    protocol: tcp
+    destination_port: "502"
+    jump: DROP
+    action: insert
+
+- name: Drop direct Web Admin (8080) forwarding from attacker to OpenPLC
+  iptables:
+    chain: FORWARD
+    source: 10.10.10.50
+    destination: 192.168.99.10
+    protocol: tcp
+    destination_port: "8080"
+    jump: DROP
+    action: insert

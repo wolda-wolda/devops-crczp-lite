@@ -1,0 +1,136 @@
+name: smartgrid-ot-sandbox
+
+hosts:
+  - name: attacker-host
+    base_box:
+      image: kali
+      mgmt_user: debian
+    flavor: kali
+
+  - name: idmz-jump
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.jump
+
+  - name: enterprise-host
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.hmi
+
+  - name: scada-hmi
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.hmi
+
+  - name: engineering-station
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.ews
+
+  - name: substation-plc1
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.plc
+
+  - name: substation-plc2
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.plc
+
+  - name: gridlabd-physics
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.plc
+
+routers:
+  - name: purdue-gateway
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: ot.router
+
+networks:
+  - name: mgmt-net
+    cidr: 10.0.100.0/24
+  - name: enterprise-net
+    cidr: 10.0.1.0/24
+  - name: idmz-net
+    cidr: 10.0.50.0/24
+  - name: scada-net
+    cidr: 10.0.2.0/24
+  - name: substation-net
+    cidr: 10.0.3.0/24
+  - name: physics-net
+    cidr: 10.0.4.0/24
+
+net_mappings:
+  - host: attacker-host
+    network: mgmt-net
+    ip: 10.0.100.50
+
+  - host: idmz-jump
+    network: idmz-net
+    ip: 10.0.50.50
+
+  - host: enterprise-host
+    network: enterprise-net
+    ip: 10.0.1.10
+
+  - host: scada-hmi
+    network: scada-net
+    ip: 10.0.2.10
+
+  - host: engineering-station
+    network: scada-net
+    ip: 10.0.2.20
+
+  - host: substation-plc1
+    network: substation-net
+    ip: 10.0.3.10
+
+  - host: substation-plc2
+    network: substation-net
+    ip: 10.0.3.11
+
+  - host: gridlabd-physics
+    network: physics-net
+    ip: 10.0.4.10
+
+router_mappings:
+  - router: purdue-gateway
+    network: mgmt-net
+    ip: 10.0.100.1
+  - router: purdue-gateway
+    network: enterprise-net
+    ip: 10.0.1.1
+  - router: purdue-gateway
+    network: idmz-net
+    ip: 10.0.50.1
+  - router: purdue-gateway
+    network: scada-net
+    ip: 10.0.2.1
+  - router: purdue-gateway
+    network: substation-net
+    ip: 10.0.3.1
+  - router: purdue-gateway
+    network: physics-net
+    ip: 10.0.4.1
+
+groups:
+  - name: smartgrid-nodes
+    nodes:
+      - attacker-host
+      - idmz-jump
+      - enterprise-host
+      - scada-hmi
+      - engineering-station
+      - substation-plc1
+      - substation-plc2
+      - gridlabd-physics

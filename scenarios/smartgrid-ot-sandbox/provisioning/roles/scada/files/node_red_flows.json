@@ -1,0 +1,70 @@
+[
+  {
+    "id": "tab_smartgrid",
+    "type": "tab",
+    "label": "Smart Grid Substation HMI",
+    "disabled": false,
+    "info": "Node-RED SCADA HMI for Substation Voltage & Breaker Monitoring - FLAG{SCADA_HMI_MONITORING_COMPROMISED}"
+  },
+  {
+    "id": "openplc_server",
+    "type": "modbus-client",
+    "name": "Substation OpenPLC",
+    "clienttype": "tcp",
+    "tcpHost": "10.0.3.10",
+    "tcpPort": "502",
+    "unitId": "1",
+    "timeout": "2000",
+    "reconnectTimeout": "2000",
+    "parallelUnitIdsAllowed": true
+  },
+  {
+    "id": "modbus_read_voltage",
+    "type": "modbus-getter",
+    "z": "tab_smartgrid",
+    "name": "Poll Substation Bus 632 Voltage",
+    "topic": "",
+    "showStatusActivities": false,
+    "showErrors": false,
+    "unitid": "1",
+    "dataType": "HoldingRegister",
+    "adr": "0",
+    "quantity": "1",
+    "server": "openplc_server",
+    "x": 210,
+    "y": 140,
+    "wires": [
+      ["scale_voltage"]
+    ]
+  },
+  {
+    "id": "scale_voltage",
+    "type": "function",
+    "z": "tab_smartgrid",
+    "name": "Scale Voltage telemetry",
+    "func": "msg.payload = msg.payload[0] / 10.0;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 450,
+    "y": 140,
+    "wires": [
+      ["debug_out"]
+    ]
+  },
+  {
+    "id": "debug_out",
+    "type": "debug",
+    "z": "tab_smartgrid",
+    "name": "HMI Telemetry Log",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 680,
+    "y": 140,
+    "wires": [
+    ]
+  }
+]

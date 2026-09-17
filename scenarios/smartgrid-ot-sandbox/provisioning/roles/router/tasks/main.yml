@@ -1,0 +1,83 @@
+---
+- name: Enable IPv4 forwarding on Purdue gateway router
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: true
+    state: present
+    reload: true
+
+- name: Install iptables-persistent for firewall persistence
+  apt:
+    name: [iptables, iptables-persistent]
+    state: present
+    update_cache: true
+
+- name: Flush existing iptables rules
+  iptables:
+    flush: true
+
+- name: Allow loopback traffic
+  iptables:
+    chain: INPUT
+    in_interface: lo
+    jump: ACCEPT
+
+- name: Allow established and related connections
+  iptables:
+    chain: FORWARD
+    ctstate: [ESTABLISHED, RELATED]
+    jump: ACCEPT
+
+- name: Permit IDMZ to SCADA Control Room forwarding
+  iptables:
+    chain: FORWARD
+    source: 10.0.50.0/24
+    destination: 10.0.2.0/24
+    jump: ACCEPT
+
+- name: Permit SCADA Control Room to Substation PLCs forwarding
+  iptables:
+    chain: FORWARD
+    source: 10.0.2.0/24
+    destination: 10.0.3.0/24
+    jump: ACCEPT
+
+- name: Permit Substation PLCs to Level 0 Physics Engine forwarding
+  iptables:
+    chain: FORWARD
+    source: 10.0.3.0/24
+    destination: 10.0.4.0/24
+    jump: ACCEPT
+
+- name: Permit Level 0 Physics Engine to Substation PLCs return path
+  iptables:
+    chain: FORWARD
+    source: 10.0.4.0/24
+    destination: 10.0.3.0/24
+    jump: ACCEPT
+
+- name: Permit Level 0 Physics Engine to SCADA HMI for InfluxDB telemetry
+  iptables:
+    chain: FORWARD
+    source: 10.0.4.0/24
+    destination: 10.0.2.0/24
+    jump: ACCEPT
+
+- name: Permit Attacker Mgmt to IDMZ Jump host forwarding
+  iptables:
+    chain: FORWARD
+    source: 10.0.100.0/24
+    destination: 10.0.50.0/24
+    jump: ACCEPT
+
+- name: Drop unauthorized cross-tier corporate-to-physics direct access
+  iptables:
+    chain: FORWARD
+    source: 10.0.100.0/24
+    destination: 10.0.4.0/24
+    jump: DROP
+
+- name: Save iptables rules
+  shell: iptables-save > /etc/iptables/rules.v4
+
